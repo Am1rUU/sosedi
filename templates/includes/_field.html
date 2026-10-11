@@ -1,0 +1,11 @@
+{# Одно поле формы: подпись, поле, подсказка и ошибки. Галочки рисуем в одну строку. #}
+<div>
+  {% if field.widget_type == "checkbox" %}
+    <label>{{ field }} {{ field.label }}</label>
+  {% else %}
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+  {% endif %}
+  {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+  {{ field.errors }}
+</div>

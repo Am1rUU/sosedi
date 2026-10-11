@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Анкеты для «{{ listing.title }}» — Соседи{% endblock %}
+{% block content %}
+<h1>Кто подойдёт: «{{ listing.title }}»</h1>
+<p class="muted small">
+  Показываем людей, чьи бюджет и привычки совпадают с вашим объявлением.
+  <a href="{% url 'matching:incoming_likes' listing.pk %}">Кто уже лайкнул →</a>
+</p>
+<div id="feed-slot">
+  {% include "matching/_person_card.html" %}
+</div>
+{% endblock %}

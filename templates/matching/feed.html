@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Комнаты — Соседи{% endblock %}
+{% block content %}
+<h1>Комнаты в городе {{ user.profile.city }}</h1>
+<p class="muted small">Лайкните понравившиеся. Если владелец тоже лайкнет вашу анкету — откроется чат.</p>
+<div id="feed-slot">
+  {% include "matching/_listing_card.html" %}
+</div>
+{% endblock %}

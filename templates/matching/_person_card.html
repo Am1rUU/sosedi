@@ -1,0 +1,30 @@
+{# Карточка анкеты в ленте владельца. Подставляется HTMX после каждого свайпа. #}
+{% include "matching/_match_banner.html" %}
+
+{% if person %}
+<div class="card swipe-card">
+  {% if person.profile.photo %}
+    <img class="photo" src="{{ person.profile.photo.url }}" alt="Фото {{ person.profile.display_name }}">
+  {% else %}
+    <div class="photo-empty">🙂</div>
+  {% endif %}
+  <div class="card-body">
+    {% if person.liked_me %}<span class="liked-badge">Уже лайкнул(а) ваше объявление</span>{% endif %}
+    {% include "includes/_profile_summary.html" %}
+  </div>
+  <form method="post" action="{% url 'matching:owner_swipe' listing.pk person.pk %}"
+        hx-post="{% url 'matching:owner_swipe' listing.pk person.pk %}" hx-target="#feed-slot" hx-swap="innerHTML"
+        class="swipe-actions" style="margin:0">
+    {% csrf_token %}
+    <button class="btn btn-pass" name="decision" value="pass">✕ Пропустить</button>
+    <button class="btn btn-like" name="decision" value="like">♥ Подходит</button>
+  </form>
+</div>
+{% else %}
+<div class="card empty">
+  <div class="icon">🔍</div>
+  <p><b>Подходящие анкеты закончились</b></p>
+  <p class="muted">Новые люди регистрируются каждый день. Проверьте, не слишком ли строгие условия в объявлении.</p>
+  <a class="btn" href="{% url 'listings:edit' listing.pk %}">Изменить объявление</a>
+</div>
+{% endif %}

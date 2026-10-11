@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Кто лайкнул — Соседи{% endblock %}
+{% block content %}
+<h1>Кто лайкнул «{{ listing.title }}»</h1>
+<p class="muted small">Эти люди ждут вашего ответа. Ответный лайк сразу откроет чат.</p>
+
+{% if people %}
+  <div class="card">
+    {% for person in people %}
+      <div class="list-item">
+        {% if person.profile.photo %}<img class="avatar" src="{{ person.profile.photo.url }}" alt="">{% else %}<div class="avatar">{{ person.profile.display_name|first|default:"?" }}</div>{% endif %}
+        <div class="grow">
+          <a href="{% url 'accounts:profile_detail' person.pk %}"><b>{{ person.profile.display_name|default:"Без имени" }}</b></a>{% if person.profile.age %}, {{ person.profile.age }}{% endif %}
+          <div class="status truncate">{% if person.profile.budget_max %}до {{ person.profile.budget_max }} ₽ · {% endif %}{{ person.profile.occupation }}</div>
+        </div>
+        <form method="post" action="{% url 'matching:owner_swipe' listing.pk person.pk %}" class="btn-row" style="margin:0">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="likes">
+          <button class="btn btn-pass" name="decision" value="pass" aria-label="Пропустить">✕</button>
+          <button class="btn btn-like" name="decision" value="like" aria-label="Лайк">♥</button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card empty">
+    <div class="icon">💌</div>
+    <p>Пока никто не лайкнул это объявление.</p>
+    <a class="btn btn-primary" href="{% url 'matching:owner_feed' listing.pk %}">Смотреть анкеты самому</a>
+  </div>
+{% endif %}
+{% endblock %}

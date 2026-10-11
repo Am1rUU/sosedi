@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Чат — Соседи{% endblock %}
+{% block content %}
+<p class="small"><a href="{% url 'matching:matches' %}">← Все мэтчи</a></p>
+<h1 style="margin-bottom:4px">{{ other.profile.display_name|default:"Собеседник" }}</h1>
+<p class="muted small" style="margin-top:0">
+  По объявлению <a href="{{ match.listing.get_absolute_url }}">«{{ match.listing.title }}»</a> ·
+  <a href="{% url 'accounts:profile_detail' other.pk %}">анкета</a>
+</p>
+
+<div class="card">
+  {# Поллинг: каждые 5 секунд подгружаем новые сообщения. Позже можно заменить на WebSocket. #}
+  <div id="chat-box" class="chat-box"
+       hx-get="{% url 'messaging:messages' match.pk %}" hx-trigger="every 5s" hx-swap="innerHTML">
+    {% include "messaging/_messages.html" %}
+  </div>
+
+  {% if match.is_closed %}
+    <p class="card-body muted">Мэтч закрыт. Отправка сообщений недоступна.</p>
+  {% else %}
+    <form class="chat-form" method="post" action="{% url 'messaging:send' match.pk %}"
+          hx-post="{% url 'messaging:send' match.pk %}" hx-target="#chat-box" hx-swap="innerHTML"
+          hx-on::after-request="if(event.detail.successful) this.reset()">
+      {% csrf_token %}
+      <textarea name="text" rows="2" maxlength="2000" placeholder="Сообщение…" required></textarea>
+      <button class="btn btn-primary" type="submit">Отправить</button>
+    </form>
+  {% endif %}
+</div>
+
+<p class="muted small" style="margin-top:14px">
+  Безопасность: не переводите деньги до просмотра и подписания договора.
+  <a href="{% url 'moderation:report_user' other.pk %}">Пожаловаться</a>
+</p>
+{% if not match.is_closed %}
+  <form method="post" action="{% url 'messaging:close' match.pk %}" onsubmit="return confirm('Закрыть мэтч? Писать друг другу будет нельзя.')">
+    {% csrf_token %}
+    <button class="btn btn-danger small">Закрыть мэтч</button>
+  </form>
+{% endif %}
+
+<script>
+  // Прокручиваем чат к последнему сообщению при открытии и после каждого обновления
+  function scrollChat() { const box = document.getElementById("chat-box"); if (box) box.scrollTop = box.scrollHeight; }
+  document.addEventListener("DOMContentLoaded", scrollChat);
+  document.addEventListener("htmx:afterSwap", (e) => { if (e.target.id === "chat-box") scrollChat(); });
+</script>
+{% endblock %}

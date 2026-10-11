@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Жалоба — Соседи{% endblock %}
+{% block page_class %}page-narrow{% endblock %}
+{% block content %}
+<h1>Пожаловаться</h1>
+<p class="muted">
+  На пользователя <b>{{ reported.profile.display_name|default:"без имени" }}</b>{% if listing %} и объявление «{{ listing.title }}»{% endif %}.
+  Жалоба анонимна — пользователь не узнает, кто её отправил.
+</p>
+<form method="post">
+  {% csrf_token %}
+  {% if listing %}<input type="hidden" name="listing" value="{{ listing.pk }}">{% endif %}
+  {{ form.as_div }}
+  <button type="submit" class="btn btn-primary">Отправить жалобу</button>
+</form>
+{% endblock %}

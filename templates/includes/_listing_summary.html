@@ -1,0 +1,17 @@
+{# Основная информация об объявлении — общая для ленты и страницы объявления #}
+<div class="price">{{ listing.rent }} ₽<span class="muted small" style="font-weight:400"> / мес{% if listing.bills_included %}, коммуналка включена{% endif %}</span></div>
+<h2 style="margin:6px 0">{{ listing.title }}</h2>
+<p class="muted" style="margin:0">
+  {{ listing.city }}{% if listing.district %}, {{ listing.district }}{% endif %}{% if listing.metro %} · м. {{ listing.metro }}{% endif %}
+</p>
+<ul class="tags">
+  <li>{{ listing.get_room_type_display }}</li>
+  <li>Свободно с {{ listing.available_from|date:"j E" }}</li>
+  {% if listing.min_term_months > 1 %}<li>от {{ listing.min_term_months }} мес.</li>{% endif %}
+  <li>Живёт: {{ listing.flatmates_count }}</li>
+  {% if listing.furnished %}<li>С мебелью</li>{% endif %}
+  {% if listing.deposit %}<li>Залог {{ listing.deposit }} ₽</li>{% endif %}
+  {% if listing.pets_allowed %}<li>Можно с животными</li>{% endif %}
+  {% if listing.smoking_allowed %}<li>Можно курить</li>{% endif %}
+  {% if listing.preferred_gender != "any" %}<li>{{ listing.get_preferred_gender_display }}</li>{% endif %}
+</ul>

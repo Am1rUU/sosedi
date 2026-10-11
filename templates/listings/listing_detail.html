@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ listing.title }} — Соседи{% endblock %}
+{% block content %}
+<div class="card">
+  {% if listing.photos.all %}
+    <div class="detail-gallery">
+      {% for photo in listing.photos.all %}
+        <img src="{{ photo.image.url }}" alt="Фото: {{ listing.title }}" style="width:100%;aspect-ratio:4/3;object-fit:cover">
+      {% endfor %}
+    </div>
+  {% endif %}
+  <div class="card-body">
+    {% if listing.status != "active" %}<p class="status">Статус: {{ listing.get_status_display }}</p>{% endif %}
+    {% include "includes/_listing_summary.html" %}
+    {% if show_address and listing.address %}
+      <p><b>Адрес:</b> {{ listing.address }}</p>
+    {% elif listing.address %}
+      <p class="muted small">Точный адрес станет виден после мэтча.</p>
+    {% endif %}
+    <p style="white-space:pre-line">{{ listing.description }}</p>
+
+    <p class="small">Владелец: <a href="{% url 'accounts:profile_detail' listing.owner_id %}">{{ listing.owner.profile.display_name|default:"анкета" }}</a></p>
+
+    {% if is_owner %}
+      <div class="btn-row">
+        <a class="btn" href="{% url 'listings:edit' listing.pk %}">Изменить</a>
+        <a class="btn btn-primary" href="{% url 'matching:owner_feed' listing.pk %}">Смотреть анкеты</a>
+      </div>
+    {% else %}
+      <a class="small muted" href="{% url 'moderation:report_user' listing.owner_id %}?listing={{ listing.pk }}">Пожаловаться на объявление</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

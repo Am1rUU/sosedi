@@ -1,0 +1,42 @@
+{% load static %}<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Соседи — найди, с кем снять жильё{% endblock %}</title>
+  <meta name="description" content="{% block description %}Сервис поиска соседей по квартире: комнаты и люди, взаимные лайки, безопасный чат.{% endblock %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  {# HTMX: свайпы и чат без перезагрузки страницы, без отдельного фронтенд-фреймворка. #}
+  {# Файл лежит в проекте, а не на внешнем CDN — не зависим от доступности зарубежных сервисов. #}
+  <script src="{% static 'js/htmx.min.js' %}" defer></script>
+</head>
+{# CSRF-токен передаётся во все HTMX-запросы через заголовок #}
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <header class="topbar">
+    <a href="{% url 'home' %}" class="logo">Сосед<span>и</span></a>
+    <nav class="nav">
+      {% if user.is_authenticated %}
+        <a href="{% url 'matching:feed' %}">Комнаты</a>
+        <a href="{% url 'listings:my' %}">Мои объявления</a>
+        <a href="{% url 'matching:matches' %}">Мэтчи</a>
+        <a href="{% url 'accounts:profile_edit' %}">Анкета</a>
+        <form method="post" action="{% url 'accounts:logout' %}" style="display:inline;margin:0">
+          {% csrf_token %}
+          <button type="submit" class="btn" style="padding:2px 10px;font-size:14px">Выйти</button>
+        </form>
+      {% else %}
+        <a href="{% url 'accounts:login' %}">Войти</a>
+        <a href="{% url 'accounts:signup' %}">Регистрация</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="page {% block page_class %}{% endblock %}">
+    {# Всплывающие сообщения (успех, ошибка, подсказка) #}
+    {% for message in messages %}
+      <div class="flash {% if message.tags == 'error' %}error{% endif %}">{{ message }}</div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

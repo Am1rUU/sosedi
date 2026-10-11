@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Мэтчи — Соседи{% endblock %}
+{% block content %}
+<h1>Мэтчи</h1>
+{% if items %}
+  <div class="card">
+    {% for item in items %}
+      <a class="list-item" href="{% url 'messaging:chat' item.match.pk %}" style="text-decoration:none;color:inherit">
+        {% if item.other.profile.photo %}<img class="avatar" src="{{ item.other.profile.photo.url }}" alt="">{% else %}<div class="avatar">{{ item.other.profile.display_name|first|default:"?" }}</div>{% endif %}
+        <div class="grow">
+          <div><b>{{ item.other.profile.display_name|default:"Без имени" }}</b>
+            <span class="status">· {% if item.i_am_owner %}хочет в вашу комнату{% else %}владелец{% endif %} «{{ item.match.listing.title|truncatechars:30 }}»</span>
+          </div>
+          <div class="status truncate">
+            {% if item.last_message %}{% if item.last_message.sender_id == user.pk %}Вы: {% endif %}{{ item.last_message.text }}{% else %}Напишите первым!{% endif %}
+          </div>
+        </div>
+        {% if item.unread %}<span class="badge">{{ item.unread }}</span>{% endif %}
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card empty">
+    <div class="icon">💬</div>
+    <p>Мэтчей пока нет.</p>
+    <p class="muted">Лайкайте комнаты или анкеты — когда интерес будет взаимным, здесь появится чат.</p>
+    <a class="btn btn-primary" href="{% url 'matching:feed' %}">К ленте</a>
+  </div>
+{% endif %}
+{% endblock %}

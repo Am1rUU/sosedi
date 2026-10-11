@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Мои объявления — Соседи{% endblock %}
+{% block content %}
+<div class="btn-row" style="justify-content:space-between">
+  <h1>Мои объявления</h1>
+  <a class="btn btn-primary" href="{% url 'listings:create' %}">+ Сдать комнату</a>
+</div>
+
+{% for listing in listings %}
+  <div class="card">
+    <div class="list-item">
+      {% with photo=listing.main_photo %}
+        {% if photo %}<img class="avatar" style="border-radius:10px" src="{{ photo.image.url }}" alt="">{% else %}<div class="avatar" style="border-radius:10px">🏠</div>{% endif %}
+      {% endwith %}
+      <div class="grow">
+        <div class="truncate"><a href="{{ listing.get_absolute_url }}"><b>{{ listing.title }}</b></a></div>
+        <div class="status">{{ listing.rent }} ₽/мес · {{ listing.city }} · {{ listing.get_status_display }}</div>
+      </div>
+    </div>
+    <div class="card-body btn-row">
+      {% if listing.status == "active" %}
+        <a class="btn btn-primary" href="{% url 'matching:owner_feed' listing.pk %}">Смотреть анкеты</a>
+        <a class="btn" href="{% url 'matching:incoming_likes' listing.pk %}">
+          Кто лайкнул {% if listing.incoming_count %}<span class="badge">{{ listing.incoming_count }}</span>{% endif %}
+        </a>
+      {% endif %}
+      {% if listing.status != "blocked" %}
+        <a class="btn" href="{% url 'listings:edit' listing.pk %}">Изменить</a>
+      {% endif %}
+
+      {# Смена статуса: пауза, возобновление, «сдано» #}
+      {% if listing.status == "active" or listing.status == "paused" or listing.status == "rented" %}
+        <form method="post" action="{% url 'listings:set_status' listing.pk %}" style="display:inline;margin:0">
+          {% csrf_token %}
+          {% if listing.status == "active" %}
+            <button class="btn" name="status" value="paused">Пауза</button>
+            <button class="btn" name="status" value="rented">Сдано</button>
+          {% else %}
+            <button class="btn" name="status" value="active">Возобновить</button>
+          {% endif %}
+        </form>
+      {% endif %}
+    </div>
+  </div>
+{% empty %}
+  <div class="card empty">
+    <div class="icon">🏠</div>
+    <p>У вас пока нет объявлений.</p>
+    <p class="muted">Сдаёте комнату? Опубликуйте объявление и смотрите анкеты подходящих соседей.</p>
+    <a class="btn btn-primary" href="{% url 'listings:create' %}">Создать объявление</a>
+  </div>
+{% endfor %}
+{% endblock %}

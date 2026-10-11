@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}{% if is_new %}Новое объявление{% else %}Редактирование{% endif %} — Соседи{% endblock %}
+{% block content %}
+<h1>{% if is_new %}Сдать комнату{% else %}Редактирование объявления{% endif %}</h1>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+
+  <fieldset>
+    <legend>Где</legend>
+    {% include "includes/_field.html" with field=form.city %}
+    {% include "includes/_field.html" with field=form.district %}
+    {% include "includes/_field.html" with field=form.metro %}
+    {% include "includes/_field.html" with field=form.address %}
+  </fieldset>
+
+  <fieldset>
+    <legend>Комната и условия</legend>
+    {% include "includes/_field.html" with field=form.title %}
+    {% include "includes/_field.html" with field=form.room_type %}
+    {% include "includes/_field.html" with field=form.rent %}
+    {% include "includes/_field.html" with field=form.deposit %}
+    {% include "includes/_field.html" with field=form.bills_included %}
+    {% include "includes/_field.html" with field=form.furnished %}
+    {% include "includes/_field.html" with field=form.available_from %}
+    {% include "includes/_field.html" with field=form.min_term_months %}
+    {% include "includes/_field.html" with field=form.flatmates_count %}
+  </fieldset>
+
+  <fieldset>
+    <legend>Правила и пожелания к соседу</legend>
+    {% include "includes/_field.html" with field=form.smoking_allowed %}
+    {% include "includes/_field.html" with field=form.pets_allowed %}
+    {% include "includes/_field.html" with field=form.preferred_gender %}
+  </fieldset>
+
+  <fieldset>
+    <legend>Описание и фото</legend>
+    {% include "includes/_field.html" with field=form.description %}
+    {% if listing and listing.photos.all %}
+      <div class="photo-grid">
+        {% for photo in listing.photos.all %}
+          <div>
+            <img src="{{ photo.image.url }}" alt="Фото объявления">
+            {# Удаление отдельной формой нельзя вложить в эту форму, поэтому используем атрибут form #}
+            <button class="btn btn-danger small" style="padding:2px 10px;margin-top:4px" form="delete-photo-{{ photo.pk }}">Удалить</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% include "includes/_field.html" with field=form.photos %}
+  </fieldset>
+
+  <button type="submit" class="btn btn-primary">{% if is_new %}Опубликовать{% else %}Сохранить{% endif %}</button>
+</form>
+
+{% if listing %}
+  {% for photo in listing.photos.all %}
+    <form id="delete-photo-{{ photo.pk }}" method="post" action="{% url 'listings:photo_delete' photo.pk %}">{% csrf_token %}</form>
+  {% endfor %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,22 @@
+# Настройки инструментов разработки
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py"]
+testpaths = ["tests"]
+addopts = "-q"
+# В тестах статика не собирается (collectstatic), предупреждение WhiteNoise об этом не важно
+filterwarnings = ["ignore:No directory at:UserWarning"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+# E/F — ошибки и неиспользуемый код, I — порядок импортов, B — частые баги, DJ — правила для Django
+select = ["E", "F", "I", "B", "DJ", "UP"]
+ignore = ["DJ001"]  # null=True у текстовых полей допустим
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]

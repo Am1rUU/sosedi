@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Вход — Соседи{% endblock %}
+{% block page_class %}page-narrow{% endblock %}
+{% block content %}
+<h1>Вход</h1>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_div }}
+  <input type="hidden" name="next" value="{{ next }}">
+  <button type="submit" class="btn btn-primary">Войти</button>
+</form>
+<p class="muted small">Нет аккаунта? <a href="{% url 'accounts:signup' %}">Зарегистрироваться</a></p>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Моя анкета — Соседи{% endblock %}
+{% block content %}
+<h1>Моя анкета</h1>
+<p class="muted">Анкету видят владельцы комнат, если включено «Ищу жильё». Честная анкета с фото получает больше ответов.</p>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+
+  {# Поля разбиты на смысловые блоки, чтобы длинная форма не пугала #}
+  <fieldset>
+    <legend>О себе</legend>
+    {% include "includes/_field.html" with field=form.display_name %}
+    {% include "includes/_field.html" with field=form.birth_year %}
+    {% include "includes/_field.html" with field=form.gender %}
+    {% include "includes/_field.html" with field=form.occupation %}
+    {% include "includes/_field.html" with field=form.about %}
+    {% include "includes/_field.html" with field=form.photo %}
+  </fieldset>
+
+  <fieldset>
+    <legend>Что ищу</legend>
+    {% include "includes/_field.html" with field=form.is_seeking %}
+    {% include "includes/_field.html" with field=form.city %}
+    {% include "includes/_field.html" with field=form.preferred_districts %}
+    {% include "includes/_field.html" with field=form.budget_max %}
+    {% include "includes/_field.html" with field=form.move_in_date %}
+  </fieldset>
+
+  <fieldset>
+    <legend>Образ жизни</legend>
+    {% include "includes/_field.html" with field=form.smoker %}
+    {% include "includes/_field.html" with field=form.has_pets %}
+    {% include "includes/_field.html" with field=form.works_from_home %}
+    {% include "includes/_field.html" with field=form.schedule %}
+  </fieldset>
+
+  <button type="submit" class="btn btn-primary">Сохранить</button>
+</form>
+{% endblock %}

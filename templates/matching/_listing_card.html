@@ -1,0 +1,35 @@
+{# Карточка объявления в ленте ищущего. Этот фрагмент HTMX подставляет после каждого свайпа. #}
+{% include "matching/_match_banner.html" %}
+
+{% if listing %}
+<div class="card swipe-card">
+  {% with photo=listing.main_photo %}
+    {% if photo %}
+      <img class="photo" src="{{ photo.image.url }}" alt="Фото: {{ listing.title }}">
+    {% else %}
+      <div class="photo-empty">🏠</div>
+    {% endif %}
+  {% endwith %}
+  <div class="card-body">
+    {% if listing.liked_me %}<span class="liked-badge">Владелец уже лайкнул вас</span>{% endif %}
+    {% include "includes/_listing_summary.html" %}
+    <p style="white-space:pre-line">{{ listing.description|truncatewords:40 }}</p>
+    <a class="small" href="{{ listing.get_absolute_url }}">Подробнее и все фото</a>
+  </div>
+  {# Две кнопки — одна форма. HTMX заменит содержимое #feed-slot следующей карточкой. #}
+  <form method="post" action="{% url 'matching:seeker_swipe' listing.pk %}"
+        hx-post="{% url 'matching:seeker_swipe' listing.pk %}" hx-target="#feed-slot" hx-swap="innerHTML"
+        class="swipe-actions" style="margin:0">
+    {% csrf_token %}
+    <button class="btn btn-pass" name="decision" value="pass">✕ Пропустить</button>
+    <button class="btn btn-like" name="decision" value="like">♥ Нравится</button>
+  </form>
+</div>
+{% else %}
+<div class="card empty">
+  <div class="icon">🔍</div>
+  <p><b>Подходящие комнаты закончились</b></p>
+  <p class="muted">Загляните позже — новые объявления появляются каждый день. Можно расширить бюджет или районы в анкете.</p>
+  <a class="btn" href="{% url 'accounts:profile_edit' %}">Изменить параметры</a>
+</div>
+{% endif %}

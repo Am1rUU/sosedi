@@ -1,0 +1,17 @@
+{# Краткая информация об анкете человека — используется в ленте владельца и на странице анкеты #}
+{% with p=person.profile %}
+<h2 style="margin-top:0">{{ p.display_name|default:"Без имени" }}{% if p.age %}, {{ p.age }}{% endif %}</h2>
+{% if p.occupation %}<p class="muted" style="margin:0 0 6px">{{ p.occupation }}</p>{% endif %}
+<p style="margin:0 0 6px">
+  {% if p.budget_max %}Бюджет до <b>{{ p.budget_max }} ₽</b>{% endif %}
+  {% if p.move_in_date %} · заезд с {{ p.move_in_date|date:"j E" }}{% endif %}
+</p>
+{% if p.preferred_districts %}<p class="small muted" style="margin:0">Районы: {{ p.preferred_districts }}</p>{% endif %}
+<ul class="tags">
+  <li>{% if p.smoker %}Курит{% else %}Не курит{% endif %}</li>
+  {% if p.has_pets %}<li>Есть животные</li>{% endif %}
+  {% if p.works_from_home %}<li>Работает из дома</li>{% endif %}
+  <li>{{ p.get_schedule_display }}</li>
+</ul>
+{% if p.about %}<p style="white-space:pre-line">{{ p.about }}</p>{% endif %}
+{% endwith %}

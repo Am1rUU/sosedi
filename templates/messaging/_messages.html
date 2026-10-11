@@ -1,0 +1,6 @@
+{# Список сообщений. HTMX обновляет этот фрагмент каждые 5 секунд и после отправки. #}
+{% for msg in chat_messages %}
+  <div class="msg {% if msg.sender_id == user.pk %}mine{% endif %}">{{ msg.text }}<span class="time">{{ msg.created_at|date:"j E, H:i" }}</span></div>
+{% empty %}
+  <p class="muted small" style="text-align:center">Сообщений пока нет. Начните с приветствия и пары слов о себе.</p>
+{% endfor %}

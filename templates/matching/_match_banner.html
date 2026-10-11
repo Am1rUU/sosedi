@@ -1,0 +1,8 @@
+{# Плашка «Это мэтч!» — показывается сразу после взаимного лайка #}
+{% if new_match %}
+<div class="match-banner">
+  <strong>Это мэтч! 🎉</strong>
+  <p style="margin:4px 0 10px">Вы понравились друг другу. Напишите первым — расскажите о себе и договоритесь о просмотре.</p>
+  <a class="btn btn-primary" href="{% url 'messaging:chat' new_match.pk %}">Открыть чат</a>
+</div>
+{% endif %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ person.profile.display_name|default:"Анкета" }} — Соседи{% endblock %}
+{% block content %}
+<div class="card">
+  {% if person.profile.photo %}<img class="photo" src="{{ person.profile.photo.url }}" alt="Фото {{ person.profile.display_name }}" style="aspect-ratio:4/3;object-fit:cover;width:100%">{% endif %}
+  <div class="card-body">
+    {% include "includes/_profile_summary.html" %}
+    {% if person.pk != user.pk %}
+      <a class="small muted" href="{% url 'moderation:report_user' person.pk %}">Пожаловаться</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
