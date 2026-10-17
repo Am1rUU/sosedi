@@ -316,3 +316,16 @@ def test_not_an_image_is_rejected(client, make_user, city):
     )
     assert response.status_code == 200
     assert not Listing.objects.filter(title="Вирус").exists()
+
+
+def test_healthcheck_answers_on_internal_http(client, settings):
+    """Проверка здоровья отвечает 200 даже на внутренний http-запрос с чужим хостом.
+
+    Так стучится Timeweb App Platform: без https и с внутренним адресом.
+    Обычные страницы в таком случае дали бы редирект или ошибку 400.
+    """
+    settings.ALLOWED_HOSTS = ["sosedi.example"]
+    settings.SECURE_SSL_REDIRECT = True
+    response = client.get("/healthz/", HTTP_HOST="10.0.0.5:8000")
+    assert response.status_code == 200
+    assert response.content == b"ok"

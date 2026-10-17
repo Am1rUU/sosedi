@@ -59,6 +59,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # Проверка здоровья для хостинга — первой, до проверок домена и https
+    "config.middleware.HealthCheckMiddleware",
     "django.middleware.security.SecurityMiddleware",
     # WhiteNoise раздаёт статику без отдельного nginx — упрощает деплой MVP
     "whitenoise.middleware.WhiteNoiseMiddleware",

@@ -26,5 +26,11 @@ USER appuser
 
 EXPOSE 8000
 
-# При старте применяем миграции и запускаем gunicorn
-CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --access-logfile -"]
+# Адрес проверки здоровья для хостинга: /healthz/ (см. config/middleware.py)
+
+# При старте:
+# 1. применяем миграции;
+# 2. если заданы DJANGO_SUPERUSER_EMAIL и DJANGO_SUPERUSER_PASSWORD — создаём администратора
+#    (нужно, чтобы войти в админку на хостинге без консоли; если он уже есть — пропускаем);
+# 3. запускаем gunicorn.
+CMD ["sh", "-c", "python manage.py migrate --noinput && if [ -n \"$DJANGO_SUPERUSER_EMAIL\" ]; then python manage.py createsuperuser --noinput || echo 'Администратор уже существует, пропускаю'; fi && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --access-logfile -"]
