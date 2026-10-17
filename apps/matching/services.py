@@ -4,8 +4,9 @@
 - её было легко покрыть тестами без HTTP-запросов;
 - позже переиспользовать в API для мобильного приложения.
 
-Ограничений на количество свайпов в MVP нет: продукт полностью бесплатный.
-Если монетизация понадобится, проверку лимита нужно добавить в record_swipe().
+Платных ограничений на количество свайпов в MVP нет: продукт полностью бесплатный.
+Есть только защитный порог от ботов (SWIPE_LIMIT_PER_HOUR), который человек не заметит.
+Если монетизация понадобится, проверку платного лимита нужно добавить в record_swipe().
 """
 
 from dataclasses import dataclass
@@ -19,6 +20,8 @@ from django.utils import timezone
 
 from apps.accounts.models import Profile, User
 from apps.listings.models import Listing
+from apps.moderation.services import blocked_user_ids, is_blocked_between
+from config import ratelimit
 
 from .models import Match, Swipe
 
@@ -60,6 +63,11 @@ def _validate_swipe(actor: User, listing: Listing, seeker: User, side: str) -> N
     if listing.status != Listing.Status.ACTIVE:
         raise ValidationError("Объявление сейчас неактивно")
 
+    # Между заблокировавшими друг друга людьми никаких действий быть не может
+    other = listing.owner if side == Swipe.Side.SEEKER else seeker
+    if is_blocked_between(actor, other):
+        raise ValidationError("Действие недоступно")
+
 
 def record_swipe(actor: User, listing: Listing, seeker: User, side: str, decision: str) -> SwipeResult:
     """Записывает свайп и, если интерес взаимный, создаёт мэтч.
@@ -73,6 +81,10 @@ def record_swipe(actor: User, listing: Listing, seeker: User, side: str, decisio
     _validate_swipe(actor, listing, seeker, side)
     if decision not in Swipe.Decision.values:
         raise ValidationError("Неизвестное решение")
+
+    # Защита от ботов, которые лайкают всех подряд
+    if ratelimit.is_limited("swipe", str(actor.pk), settings.SWIPE_LIMIT_PER_HOUR, 60 * 60):
+        raise ValidationError("Слишком много свайпов подряд. Сделайте паузу и возвращайтесь чуть позже.")
 
     with transaction.atomic():
         swipe, _ = Swipe.objects.update_or_create(
@@ -142,6 +154,7 @@ def seeker_feed(user: User, limit: int | None = None) -> list[Listing]:
         return []
 
     qs = Listing.objects.visible().filter(city_id=profile.city_id).exclude(owner=user)
+    qs = qs.exclude(owner_id__in=blocked_user_ids(user))
 
     # Бюджет: допускаем превышение на 10%, люди часто готовы немного добавить
     if profile.budget_max:
@@ -177,26 +190,38 @@ def seeker_feed(user: User, limit: int | None = None) -> list[Listing]:
 
     # Берём с запасом и досортировываем по совместимости в Python — на MVP этого достаточно
     candidates = list(qs[: limit * 3])
-    candidates.sort(key=lambda listing: (not listing.liked_me, -_listing_score(profile, listing)))
+    for listing in candidates:
+        # Причины совместимости показываются в карточке строкой «Подходит вам: …»
+        listing.fit_reasons = fit_reasons(profile, listing)
+    candidates.sort(key=lambda listing: (not listing.liked_me, -_listing_score(listing.fit_reasons)))
     return candidates[:limit]
 
 
-def _listing_score(profile: Profile, listing: Listing) -> int:
-    """Простой балл совместимости объявления с анкетой (чем больше, тем лучше)."""
-    score = 0
+# Вес каждой причины совместимости при сортировке ленты
+_FIT_WEIGHTS = {"район": 3, "дата заезда": 2, "бюджет": 1}
+
+
+def fit_reasons(profile: Profile, listing: Listing) -> list[str]:
+    """Чем объявление подходит человеку — короткие причины для карточки."""
+    reasons = []
+    # Цена в пределах бюджета (в ленту допускаются и чуть дороже, но «подходит» — только в бюджете)
+    if profile.budget_max and listing.rent <= profile.budget_max:
+        reasons.append("бюджет")
     # Совпадение по району или метро из пожеланий
     wishes = (profile.preferred_districts or "").lower()
     if wishes and (
         (listing.district and listing.district.lower() in wishes) or (listing.metro and listing.metro.lower() in wishes)
     ):
-        score += 3
-    # Заезд: комната свободна к желаемой дате
+        reasons.append("район")
+    # Комната свободна к желаемой дате заезда
     if profile.move_in_date and listing.available_from <= profile.move_in_date:
-        score += 2
-    # Комфортная цена — заметно ниже бюджета
-    if profile.budget_max and listing.rent <= profile.budget_max * 0.9:
-        score += 1
-    return score
+        reasons.append("дата заезда")
+    return reasons
+
+
+def _listing_score(reasons: list[str]) -> int:
+    """Балл совместимости для сортировки (чем больше, тем выше в ленте)."""
+    return sum(_FIT_WEIGHTS.get(reason, 0) for reason in reasons)
 
 
 def owner_feed(user: User, listing: Listing, limit: int | None = None) -> list[User]:
@@ -216,6 +241,7 @@ def owner_feed(user: User, listing: Listing, limit: int | None = None) -> list[U
         profile__city_id=listing.city_id,
     ).exclude(pk=user.pk)
     qs = qs.exclude(profile__display_name="")
+    qs = qs.exclude(pk__in=blocked_user_ids(user))
 
     # Бюджет ищущего должен покрывать хотя бы 90% цены (или не указан)
     qs = qs.filter(Q(profile__budget_max__isnull=True) | Q(profile__budget_max__gte=int(listing.rent * 0.9)))
@@ -271,6 +297,7 @@ def incoming_likes_for_listing(listing: Listing) -> QuerySet[User]:
             profile__is_hidden=False,
         )
         .exclude(Exists(owner_decided))
+        .exclude(pk__in=blocked_user_ids(listing.owner))
         .select_related("profile")
         .distinct()
     )

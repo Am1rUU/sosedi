@@ -3,6 +3,7 @@
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 
 
 class ListingQuerySet(models.QuerySet):
@@ -91,7 +92,13 @@ class Listing(models.Model):
     @property
     def main_photo(self):
         """Первое фото объявления для карточки в ленте."""
-        return self.photos.first()
+        photos = list(self.photos.all())  # использует prefetch_related, если он был
+        return photos[0] if photos else None
+
+    @property
+    def is_available_now(self) -> bool:
+        """Комната уже свободна (дата заезда сегодня или в прошлом)."""
+        return self.available_from <= timezone.localdate()
 
 
 class ListingPhoto(models.Model):

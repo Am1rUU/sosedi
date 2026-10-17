@@ -1,17 +1,21 @@
-{# Краткая информация об анкете человека — используется в ленте владельца и на странице анкеты #}
+{% load humanize %}{# Анкета человека: имя, бюджет, привычки, «о себе». Используется в ленте владельца и на странице анкеты. #}
 {% with p=person.profile %}
-<h2 style="margin-top:0">{{ p.display_name|default:"Без имени" }}{% if p.age %}, {{ p.age }}{% endif %}</h2>
-{% if p.occupation %}<p class="muted" style="margin:0 0 6px">{{ p.occupation }}</p>{% endif %}
-<p style="margin:0 0 6px">
-  {% if p.budget_max %}Бюджет до <b>{{ p.budget_max }} ₽</b>{% endif %}
-  {% if p.move_in_date %} · заезд с {{ p.move_in_date|date:"j E" }}{% endif %}
-</p>
-{% if p.preferred_districts %}<p class="small muted" style="margin:0">Районы: {{ p.preferred_districts }}</p>{% endif %}
-<ul class="tags">
-  <li>{% if p.smoker %}Курит{% else %}Не курит{% endif %}</li>
-  {% if p.has_pets %}<li>Есть животные</li>{% endif %}
-  {% if p.works_from_home %}<li>Работает из дома</li>{% endif %}
-  <li>{{ p.get_schedule_display }}</li>
-</ul>
-{% if p.about %}<p style="white-space:pre-line">{{ p.about }}</p>{% endif %}
+<div>
+  <div class="display" style="font-size:22px">{{ p.display_name|default:"Без имени" }}{% if p.age %}, {{ p.age }}{% endif %}</div>
+  {% if p.occupation %}<div class="muted small" style="margin-top:2px">{{ p.occupation }}</div>{% endif %}
+</div>
+{% if p.budget_max or p.move_in_date %}
+<div class="stat-row">
+  {% if p.budget_max %}<div class="stat"><div class="stat-label">Бюджет</div><div class="stat-value">до {{ p.budget_max|intcomma }} ₽</div></div>{% endif %}
+  {% if p.move_in_date %}<div class="stat"><div class="stat-label">Заезд</div><div class="stat-value">с {{ p.move_in_date|date:"j E" }}</div></div>{% endif %}
+</div>
+{% endif %}
+<div class="traits">
+  <div class="trait">{% if p.smoker %}{% include "includes/icon.html" with name="smoke" %}Курит{% else %}{% include "includes/icon.html" with name="nosmoke" %}Не курит{% endif %}</div>
+  <div class="trait">{% include "includes/icon.html" with name="moon" %}{{ p.get_schedule_display }}</div>
+  <div class="trait">{% include "includes/icon.html" with name="paw" %}{% if p.has_pets %}Есть питомец{% else %}Без животных{% endif %}</div>
+  <div class="trait">{% include "includes/icon.html" with name="laptop" %}{% if p.works_from_home %}Работает из дома{% else %}Работает вне дома{% endif %}</div>
+</div>
+{% if p.preferred_districts %}<div class="muted small">Районы: {{ p.preferred_districts }}</div>{% endif %}
+{% if p.about %}<p class="card-text">«{{ p.about }}»</p>{% endif %}
 {% endwith %}

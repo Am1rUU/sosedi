@@ -14,4 +14,5 @@ urlpatterns = [
     path("listing/<int:listing_id>/likes/", views.incoming_likes, name="incoming_likes"),
     # Мэтчи обеих ролей
     path("matches/", views.matches, name="matches"),
+    path("match/<int:match_id>/", views.match_page, name="match"),
 ]

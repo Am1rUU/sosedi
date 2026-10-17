@@ -5,6 +5,7 @@
 активной, можно перейти на Django Channels, не меняя модели данных.
 """
 
+from django.conf import settings
 from django.contrib import messages as flash
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
@@ -13,8 +14,20 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.matching.models import Match
+from apps.moderation.services import is_blocked_between
+from config import ratelimit
 
 from .models import Message
+
+# Готовые первые фразы — помогают начать разговор сразу после мэтча
+QUICK_PHRASES_FOR_SEEKER = [
+    "Здравствуйте! Когда можно посмотреть комнату?",
+    "Привет! Расскажу немного о себе: ",
+]
+QUICK_PHRASES_FOR_OWNER = [
+    "Здравствуйте! Когда вам удобно посмотреть комнату?",
+    "Привет! Расскажу немного о квартире и соседях: ",
+]
 
 # Ограничение на длину сообщения (совпадает с моделью)
 MAX_MESSAGE_LENGTH = 2000
@@ -27,6 +40,9 @@ def _get_match_for_user(request, match_id: int) -> Match:
     )
     if request.user.pk not in match.participants():
         # Не раскрываем существование чужого чата — отвечаем «не найдено»
+        raise Http404
+    if is_blocked_between(match.seeker, match.listing.owner):
+        # После блокировки чат исчезает у обоих
         raise Http404
     return match
 
@@ -41,10 +57,19 @@ def chat(request, match_id: int):
     """Страница переписки."""
     match = _get_match_for_user(request, match_id)
     _mark_read(match, request.user)
+    chat_messages = match.messages.select_related("sender")
+    i_am_owner = match.listing.owner_id == request.user.pk
     context = {
         "match": match,
         "other": match.other_side(request.user),
-        "chat_messages": match.messages.select_related("sender"),
+        "i_am_owner": i_am_owner,
+        "chat_messages": chat_messages,
+        # Текст, выбранный на экране мэтча, подставляется в поле ввода
+        "prefill": (request.GET.get("text") or "")[:300],
+        # Подсказки первых фраз показываем, только пока переписка пустая
+        "quick_phrases": []
+        if chat_messages.exists()
+        else (QUICK_PHRASES_FOR_OWNER if i_am_owner else QUICK_PHRASES_FOR_SEEKER),
     }
     return render(request, "messaging/chat.html", context)
 
@@ -66,17 +91,24 @@ def send_message(request, match_id: int):
     match = _get_match_for_user(request, match_id)
     text = (request.POST.get("text") or "").strip()[:MAX_MESSAGE_LENGTH]
 
+    error = ""
     if match.is_closed:
-        flash.error(request, "Этот мэтч закрыт, отправка сообщений недоступна.")
+        error = "Этот мэтч закрыт, отправка сообщений недоступна."
     elif text:
-        Message.objects.create(match=match, sender=request.user, text=text)
+        # Защита от рассылки спама: живой человек столько не напишет
+        if ratelimit.is_limited("message", str(request.user.pk), settings.MESSAGE_LIMIT_PER_10_MIN, 10 * 60):
+            error = "Вы отправляете сообщения слишком часто. Подождите несколько минут."
+        else:
+            Message.objects.create(match=match, sender=request.user, text=text)
 
     if request.headers.get("HX-Request") == "true":
         return render(
             request,
             "messaging/_messages.html",
-            {"match": match, "chat_messages": match.messages.select_related("sender")},
+            {"match": match, "chat_messages": match.messages.select_related("sender"), "error": error},
         )
+    if error:
+        flash.error(request, error)
     return redirect("messaging:chat", match_id=match.pk)
 
 

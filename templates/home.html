@@ -1,24 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero">
-  <h1>Найди соседа, с которым будет легко жить</h1>
-  <p>Комнаты и люди в одной ленте. Лайкайте друг друга — чат откроется только при взаимном интересе. Бесплатно.</p>
-  <div class="btn-row" style="justify-content:center">
+  <h1>Найди соседа, с которым легко жить</h1>
+  <p>Комнаты и люди в одной ленте. Лайкайте — чат откроется, только если интерес взаимный. Бесплатно.</p>
+  <div class="btn-row">
     {% if user.is_authenticated %}
-      <a class="btn btn-primary" href="{% url 'matching:feed' %}">Смотреть комнаты</a>
-      <a class="btn" href="{% url 'listings:create' %}">Сдать комнату</a>
+      <a class="btn btn-primary btn-block" href="{% url 'matching:feed' %}">Смотреть комнаты</a>
+      <a class="btn btn-block" href="{% url 'listings:create' %}">Сдать комнату</a>
     {% else %}
-      <a class="btn btn-primary" href="{% url 'accounts:signup' %}">Начать бесплатно</a>
-      <a class="btn" href="{% url 'accounts:login' %}">У меня есть аккаунт</a>
+      <a class="btn btn-primary btn-block" href="{% url 'accounts:signup' %}">{% if INVITE_ONLY %}У меня есть приглашение{% else %}Начать бесплатно{% endif %}</a>
+      <a class="btn btn-block" href="{% url 'accounts:login' %}">У меня есть аккаунт</a>
     {% endif %}
   </div>
+  {% if INVITE_ONLY and not user.is_authenticated %}
+    <p class="small muted" style="margin-top:12px">Сейчас идёт закрытый тест — регистрация только по приглашению.</p>
+  {% endif %}
 </section>
 
-<section class="steps">
-  <div class="card step"><b>1. Анкета или объявление</b><span class="muted">Расскажите о себе или о комнате — пара минут.</span></div>
-  <div class="card step"><b>2. Свайпайте</b><span class="muted">Ищущие смотрят комнаты, владельцы — анкеты людей.</span></div>
-  <div class="card step"><b>3. Мэтч и чат</b><span class="muted">Взаимный лайк открывает переписку. Контакты — когда сами решите.</span></div>
+<section class="steps" aria-label="Как это работает">
+  <div class="step"><span class="step-num">1</span><div><b>Анкета или объявление</b><span class="muted small">Расскажите о себе или о комнате — пара минут.</span></div></div>
+  <div class="step"><span class="step-num">2</span><div><b>Свайпайте</b><span class="muted small">Ищущие смотрят комнаты, владельцы — анкеты людей.</span></div></div>
+  <div class="step"><span class="step-num">3</span><div><b>Мэтч и чат</b><span class="muted small">Взаимный лайк открывает переписку. Контакты — когда сами решите.</span></div></div>
 </section>
 
-<p class="muted small" style="margin-top:28px">Никогда не переводите предоплату до просмотра комнаты. Подозрительное объявление — жалуйтесь, мы проверим.</p>
+<div class="notice" style="margin-top:20px">
+  {% include "includes/icon.html" with name="shield" %}
+  Никогда не переводите предоплату до просмотра комнаты. Подозрительное объявление — пожалуйтесь, мы проверим.
+</div>
 {% endblock %}

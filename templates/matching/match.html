@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Это мэтч! — Соседи{% endblock %}
+{% block body_class %}screen-green{% endblock %}
+{% block tabbar_class %}{% endblock %}
+{% block header %}{% endblock %}
+{% block tabbar %}{% endblock %}
+{% block main %}
+{% with seeker=match.seeker owner=match.listing.owner %}
+<main class="match-screen">
+  <a class="match-close" href="{{ continue_url }}" aria-label="Закрыть">{% include "includes/icon.html" with name="x" %}</a>
+
+  <div class="match-pair" aria-hidden="true">
+    <div class="match-avatar left">
+      {% if seeker.profile.photo %}<img src="{{ seeker.profile.photo.url }}" alt="">{% else %}{{ seeker.profile.display_name|first|default:"?" }}{% endif %}
+    </div>
+    <div class="match-avatar right">
+      {% with photo=match.listing.main_photo %}
+        {% if photo %}<img src="{{ photo.image.url }}" alt="">{% else %}{{ owner.profile.display_name|first|default:"?" }}{% endif %}
+      {% endwith %}
+    </div>
+    <div class="match-heart">{% include "includes/icon.html" with name="heart" %}</div>
+  </div>
+
+  <h1 class="match-title">Это мэтч!</h1>
+  <p class="match-sub">Вы и {{ other.profile.display_name|default:"собеседник" }} понравились друг другу</p>
+  <p class="match-room">{{ match.listing.title }} · {{ match.listing.rent|intcomma }} ₽</p>
+
+  <div class="match-phrases">
+    <div class="match-phrases-label">Быстрый первый шаг</div>
+    {% for phrase in quick_phrases %}
+      <a class="phrase" href="{% url 'messaging:chat' match.pk %}?text={{ phrase|urlencode }}">{{ phrase }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="match-spacer"></div>
+  <a class="match-btn-main" href="{% url 'messaging:chat' match.pk %}">{% include "includes/icon.html" with name="chat" %}Написать</a>
+  <a class="match-btn-alt" href="{{ continue_url }}">Смотреть дальше</a>
+  <p class="match-safety">{% include "includes/icon.html" with name="shield" %}Не переводите деньги до просмотра и договора</p>
+</main>
+{% endwith %}
+{% endblock %}

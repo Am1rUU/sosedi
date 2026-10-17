@@ -1,6 +1,7 @@
 {# Список сообщений. HTMX обновляет этот фрагмент каждые 5 секунд и после отправки. #}
+<span class="chat-day">Мэтч · {{ match.created_at|date:"j E" }}</span>
+<div class="notice">{% include "includes/icon.html" with name="shield" %}Не переводите предоплату до просмотра и подписания договора</div>
 {% for msg in chat_messages %}
-  <div class="msg {% if msg.sender_id == user.pk %}mine{% endif %}">{{ msg.text }}<span class="time">{{ msg.created_at|date:"j E, H:i" }}</span></div>
-{% empty %}
-  <p class="muted small" style="text-align:center">Сообщений пока нет. Начните с приветствия и пары слов о себе.</p>
+  <div class="msg {% if msg.sender_id == user.pk %}mine{% endif %}">{{ msg.text }}<span class="msg-time">{{ msg.created_at|date:"H:i" }}</span></div>
 {% endfor %}
+{% if error %}<p class="chat-error" role="alert">{{ error }}</p>{% endif %}

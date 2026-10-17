@@ -1,30 +1,37 @@
-{# Карточка анкеты в ленте владельца. Подставляется HTMX после каждого свайпа. #}
-{% include "matching/_match_banner.html" %}
+{# Карточка анкеты в ленте владельца. HTMX подставляет её после каждого свайпа. #}
+{% if swipe_error %}<div class="flash error" role="alert">{{ swipe_error }}</div>{% endif %}
 
 {% if person %}
-<div class="card swipe-card">
-  {% if person.profile.photo %}
-    <img class="photo" src="{{ person.profile.photo.url }}" alt="Фото {{ person.profile.display_name }}">
-  {% else %}
-    <div class="photo-empty">🙂</div>
-  {% endif %}
-  <div class="card-body">
-    {% if person.liked_me %}<span class="liked-badge">Уже лайкнул(а) ваше объявление</span>{% endif %}
-    {% include "includes/_profile_summary.html" %}
+<form method="post" action="{% url 'matching:owner_swipe' listing.pk person.pk %}"
+      hx-post="{% url 'matching:owner_swipe' listing.pk person.pk %}" hx-target="#feed-slot" hx-swap="innerHTML" style="margin:0">
+  {% csrf_token %}
+  <div class="deck">
+    {% if has_next %}<div class="deck-back right" aria-hidden="true"></div>{% endif %}
+    <article class="card swipe-card" data-swipe-card aria-label="Анкета: {{ person.profile.display_name }}">
+      <div class="photo">
+        {% if person.profile.photo %}<img src="{{ person.profile.photo.url }}" alt="Фото: {{ person.profile.display_name }}" draggable="false">
+        {% else %}<div class="photo-empty"><span class="photo-letter">{{ person.profile.display_name|first|default:"?" }}</span></div>{% endif %}
+        {% if person.liked_me %}<span class="liked-badge">{% include "includes/icon.html" with name="heart" %}Лайкнул(а) вашу комнату</span>{% endif %}
+        <span class="stamp stamp-like" aria-hidden="true">Подходит</span>
+        <span class="stamp stamp-pass" aria-hidden="true">Пропуск</span>
+      </div>
+      <div class="card-body">
+        {% include "includes/_profile_summary.html" %}
+      </div>
+    </article>
   </div>
-  <form method="post" action="{% url 'matching:owner_swipe' listing.pk person.pk %}"
-        hx-post="{% url 'matching:owner_swipe' listing.pk person.pk %}" hx-target="#feed-slot" hx-swap="innerHTML"
-        class="swipe-actions" style="margin:0">
-    {% csrf_token %}
-    <button class="btn btn-pass" name="decision" value="pass">✕ Пропустить</button>
-    <button class="btn btn-like" name="decision" value="like">♥ Подходит</button>
-  </form>
-</div>
+  <div class="swipe-actions">
+    <button class="swipe-btn pass" type="submit" name="decision" value="pass" data-swipe-action aria-label="Пропустить">{% include "includes/icon.html" with name="x" %}</button>
+    <a class="swipe-btn info" href="{% url 'accounts:profile_detail' person.pk %}" aria-label="Открыть анкету">{% include "includes/icon.html" with name="info" %}</a>
+    <button class="swipe-btn like" type="submit" name="decision" value="like" data-swipe-action aria-label="Подходит">{% include "includes/icon.html" with name="heart" %}</button>
+  </div>
+  <p class="swipe-hint">Свайп вправо — подходит, влево — пропустить</p>
+</form>
 {% else %}
 <div class="card empty">
-  <div class="icon">🔍</div>
-  <p><b>Подходящие анкеты закончились</b></p>
-  <p class="muted">Новые люди регистрируются каждый день. Проверьте, не слишком ли строгие условия в объявлении.</p>
+  <div class="empty-icon">{% include "includes/icon.html" with name="search" %}</div>
+  <h2>Подходящие анкеты закончились</h2>
+  <p>Новые люди регистрируются каждый день. Проверьте, не слишком ли строгие условия в объявлении.</p>
   <a class="btn" href="{% url 'listings:edit' listing.pk %}">Изменить объявление</a>
 </div>
 {% endif %}

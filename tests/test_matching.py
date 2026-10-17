@@ -206,3 +206,25 @@ def test_incoming_likes_excludes_answered(make_user, listing):
     record_swipe(answered, listing, answered, SEEKER, LIKE)
     record_swipe(listing.owner, listing, answered, OWNER, PASS)
     assert list(incoming_likes_for_listing(listing)) == [waiting]
+
+
+# --- Совместимость и экраны мэтчей ---------------------------------------------
+
+
+def test_fit_reasons_shown_in_feed(make_user, make_listing):
+    from datetime import date, timedelta
+
+    seeker = make_user(
+        budget_max=35000, preferred_districts="Таганская, Курская", move_in_date=date.today() + timedelta(days=30)
+    )
+    make_listing(rent=30000, metro="Таганская")
+    listing = seeker_feed(seeker)[0]
+    assert listing.fit_reasons == ["бюджет", "район", "дата заезда"]
+
+
+def test_better_fit_goes_first(make_user, make_listing):
+    seeker = make_user(budget_max=40000, preferred_districts="Сокол")
+    plain = make_listing(title="Обычная")
+    in_district = make_listing(title="У Сокола", metro="Сокол")
+    Listing.objects.filter(pk=in_district.pk).update(created_at=timezone.now() - timedelta(days=3))
+    assert seeker_feed(seeker)[:2] == [in_district, plain]

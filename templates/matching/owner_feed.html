@@ -1,12 +1,18 @@
 {% extends "base.html" %}
 {% block title %}Анкеты для «{{ listing.title }}» — Соседи{% endblock %}
+{% block header %}{% endblock %}
 {% block content %}
-<h1>Кто подойдёт: «{{ listing.title }}»</h1>
-<p class="muted small">
-  Показываем людей, чьи бюджет и привычки совпадают с вашим объявлением.
-  <a href="{% url 'matching:incoming_likes' listing.pk %}">Кто уже лайкнул →</a>
-</p>
-<div id="feed-slot">
+<div class="back-row" style="margin-top:4px">
+  <a href="{% url 'listings:my' %}" class="icon-btn" aria-label="Назад к объявлениям">{% include "includes/icon.html" with name="back" %}</a>
+  <div class="grow">
+    <div class="muted small">Ищем соседа для</div>
+    <div class="truncate" style="font-weight:600">{{ listing.title }}</div>
+  </div>
+  {% if waiting_count %}
+    <a class="liked-badge" href="{% url 'matching:incoming_likes' listing.pk %}" style="text-decoration:none">{% include "includes/icon.html" with name="heart" %}{{ waiting_count }} ждут</a>
+  {% endif %}
+</div>
+<div id="feed-slot" style="margin-top:10px">
   {% include "matching/_person_card.html" %}
 </div>
 {% endblock %}

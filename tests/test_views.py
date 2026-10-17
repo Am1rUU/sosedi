@@ -131,8 +131,10 @@ def test_full_flow_listing_swipes_match_chat(client, make_user, city):
     response = client.post(
         reverse("matching:owner_swipe", args=[listing.pk, seeker.pk]), {"decision": "like"}, HTTP_HX_REQUEST="true"
     )
-    assert "Это мэтч" in response.content.decode()
     match = Match.objects.get(listing=listing, seeker=seeker)
+    # HTMX получает команду перейти на экран «Это мэтч!»
+    assert response["HX-Redirect"] == reverse("matching:match", args=[match.pk])
+    assert "Это мэтч" in client.get(response["HX-Redirect"]).content.decode()
 
     # Переписка
     client.post(reverse("messaging:send", args=[match.pk]), {"text": "Привет! Когда можно посмотреть?"})

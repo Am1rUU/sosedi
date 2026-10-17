@@ -12,6 +12,25 @@ from apps.listings.models import Listing
 _counter = count(1)
 
 
+@pytest.fixture(autouse=True)
+def _test_settings(settings, tmp_path):
+    """Общие настройки для всех тестов.
+
+    - Кэш в памяти и чистый для каждого теста: счётчики попыток входа и свайпов
+      не переходят из теста в тест.
+    - Быстрый алгоритм паролей: Argon2 специально медленный, в тестах это лишнее.
+    - Загруженные фото пишутся во временную папку, а не в проект.
+    - По умолчанию регистрация открыта; тесты закрытого режима включают его сами.
+    """
+    settings.CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+    settings.PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+    settings.MEDIA_ROOT = tmp_path / "media"
+    settings.INVITE_ONLY = False
+    from django.core.cache import cache
+
+    cache.clear()
+
+
 @pytest.fixture
 def city(db):
     """Москва создаётся миграцией с начальными городами."""

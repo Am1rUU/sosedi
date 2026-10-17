@@ -4,6 +4,7 @@ from django import forms
 from django.conf import settings
 
 from apps.geo.models import City
+from config.images import process_photo
 
 from .models import Listing
 
@@ -58,7 +59,7 @@ class ListingForm(forms.ModelForm):
             "description",
         ]
         widgets = {
-            "available_from": forms.DateInput(attrs={"type": "date"}),
+            "available_from": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
             "description": forms.Textarea(
                 attrs={"rows": 6, "placeholder": "Опишите комнату, квартиру, соседей и правила дома"}
             ),
@@ -70,12 +71,16 @@ class ListingForm(forms.ModelForm):
         self.fields["city"].queryset = City.objects.filter(is_active=True)
 
     def clean_photos(self):
-        """Проверяем количество и размер фото."""
+        """Проверяем количество и размер фото, затем сжимаем и стираем метаданные.
+
+        Удаление EXIF здесь особенно важно: в фото комнаты могут быть
+        GPS-координаты, а точный адрес мы показываем только после мэтча.
+        """
         photos = self.cleaned_data.get("photos") or []
         existing = self.instance.photos.count() if self.instance.pk else 0
         if existing + len(photos) > MAX_PHOTOS:
             raise forms.ValidationError(f"Максимум {MAX_PHOTOS} фото в объявлении")
         for photo in photos:
             if photo.size > settings.MAX_PHOTO_SIZE_BYTES:
-                raise forms.ValidationError(f"Фото «{photo.name}» больше 5 МБ")
-        return photos
+                raise forms.ValidationError(f"Фото «{photo.name}» больше 10 МБ")
+        return [process_photo(photo) for photo in photos]

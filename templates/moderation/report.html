@@ -1,16 +1,25 @@
 {% extends "base.html" %}
 {% block title %}Жалоба — Соседи{% endblock %}
-{% block page_class %}page-narrow{% endblock %}
+{% block header %}{% endblock %}
 {% block content %}
-<h1>Пожаловаться</h1>
-<p class="muted">
-  На пользователя <b>{{ reported.profile.display_name|default:"без имени" }}</b>{% if listing %} и объявление «{{ listing.title }}»{% endif %}.
-  Жалоба анонимна — пользователь не узнает, кто её отправил.
+<div class="back-row" style="margin-top:4px">
+  <a href="javascript:history.back()" class="icon-btn" aria-label="Назад">{% include "includes/icon.html" with name="back" %}</a>
+</div>
+<h1 class="page-title">Пожаловаться</h1>
+<p class="page-lead">
+  На {{ reported.profile.display_name|default:"пользователя" }}{% if listing %} и объявление «{{ listing.title }}»{% endif %}.
+  Жалоба анонимна — человек не узнает, кто её отправил.
 </p>
-<form method="post">
+<form method="post" class="form-card">
   {% csrf_token %}
   {% if listing %}<input type="hidden" name="listing" value="{{ listing.pk }}">{% endif %}
-  {{ form.as_div }}
-  <button type="submit" class="btn btn-primary">Отправить жалобу</button>
+  <div class="field">
+    <span class="field-label" id="reason-label">Что случилось?</span>
+    <div class="chip-choice" role="radiogroup" aria-labelledby="reason-label">{{ form.reason }}</div>
+    {{ form.reason.errors }}
+  </div>
+  {% include "includes/_field.html" with field=form.comment %}
+  {% include "includes/_field.html" with field=form.also_block %}
+  <button type="submit" class="btn btn-primary btn-block">Отправить жалобу</button>
 </form>
 {% endblock %}

@@ -1,35 +1,43 @@
-{# Карточка объявления в ленте ищущего. Этот фрагмент HTMX подставляет после каждого свайпа. #}
-{% include "matching/_match_banner.html" %}
+{# Карточка объявления в ленте ищущего. HTMX подставляет этот фрагмент после каждого свайпа. #}
+{% if swipe_error %}<div class="flash error" role="alert">{{ swipe_error }}</div>{% endif %}
 
 {% if listing %}
-<div class="card swipe-card">
-  {% with photo=listing.main_photo %}
-    {% if photo %}
-      <img class="photo" src="{{ photo.image.url }}" alt="Фото: {{ listing.title }}">
-    {% else %}
-      <div class="photo-empty">🏠</div>
-    {% endif %}
-  {% endwith %}
-  <div class="card-body">
-    {% if listing.liked_me %}<span class="liked-badge">Владелец уже лайкнул вас</span>{% endif %}
-    {% include "includes/_listing_summary.html" %}
-    <p style="white-space:pre-line">{{ listing.description|truncatewords:40 }}</p>
-    <a class="small" href="{{ listing.get_absolute_url }}">Подробнее и все фото</a>
+<form method="post" action="{% url 'matching:seeker_swipe' listing.pk %}"
+      hx-post="{% url 'matching:seeker_swipe' listing.pk %}" hx-target="#feed-slot" hx-swap="innerHTML" style="margin:0">
+  {% csrf_token %}
+  <div class="deck">
+    {% if has_next %}<div class="deck-back" aria-hidden="true"></div>{% endif %}
+    <article class="card swipe-card" data-swipe-card aria-label="{{ listing.title }}">
+      <div class="photo">
+        {% with photo=listing.main_photo %}
+          {% if photo %}<img src="{{ photo.image.url }}" alt="Фото: {{ listing.title }}" draggable="false">
+          {% else %}<div class="photo-empty">{% include "includes/icon.html" with name="home" %}</div>{% endif %}
+        {% endwith %}
+        {% if listing.liked_me %}<span class="liked-badge">{% include "includes/icon.html" with name="heart" %}Владелец уже лайкнул вас</span>{% endif %}
+        {% with count=listing.photos.all|length %}{% if count > 1 %}<span class="photo-count">{{ count }} фото</span>{% endif %}{% endwith %}
+        <span class="stamp stamp-like" aria-hidden="true">Нравится</span>
+        <span class="stamp stamp-pass" aria-hidden="true">Пропуск</span>
+      </div>
+      <div class="card-body">
+        {% include "includes/_listing_summary.html" %}
+        {% if listing.fit_reasons %}
+          <div class="fit">{% include "includes/icon.html" with name="check" %}<span>Подходит вам: {{ listing.fit_reasons|join:", " }}</span></div>
+        {% endif %}
+      </div>
+    </article>
   </div>
-  {# Две кнопки — одна форма. HTMX заменит содержимое #feed-slot следующей карточкой. #}
-  <form method="post" action="{% url 'matching:seeker_swipe' listing.pk %}"
-        hx-post="{% url 'matching:seeker_swipe' listing.pk %}" hx-target="#feed-slot" hx-swap="innerHTML"
-        class="swipe-actions" style="margin:0">
-    {% csrf_token %}
-    <button class="btn btn-pass" name="decision" value="pass">✕ Пропустить</button>
-    <button class="btn btn-like" name="decision" value="like">♥ Нравится</button>
-  </form>
-</div>
+  <div class="swipe-actions">
+    <button class="swipe-btn pass" type="submit" name="decision" value="pass" data-swipe-action aria-label="Пропустить">{% include "includes/icon.html" with name="x" %}</button>
+    <a class="swipe-btn info" href="{{ listing.get_absolute_url }}" aria-label="Подробнее и все фото">{% include "includes/icon.html" with name="info" %}</a>
+    <button class="swipe-btn like" type="submit" name="decision" value="like" data-swipe-action aria-label="Нравится">{% include "includes/icon.html" with name="heart" %}</button>
+  </div>
+  <p class="swipe-hint">Свайп вправо — нравится, влево — пропустить</p>
+</form>
 {% else %}
 <div class="card empty">
-  <div class="icon">🔍</div>
-  <p><b>Подходящие комнаты закончились</b></p>
-  <p class="muted">Загляните позже — новые объявления появляются каждый день. Можно расширить бюджет или районы в анкете.</p>
+  <div class="empty-icon">{% include "includes/icon.html" with name="search" %}</div>
+  <h2>Подходящие комнаты закончились</h2>
+  <p>Загляните позже — новые объявления появляются каждый день. Можно расширить бюджет или районы в анкете.</p>
   <a class="btn" href="{% url 'accounts:profile_edit' %}">Изменить параметры</a>
 </div>
 {% endif %}

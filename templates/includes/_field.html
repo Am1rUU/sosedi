@@ -1,7 +1,10 @@
-{# Одно поле формы: подпись, поле, подсказка и ошибки. Галочки рисуем в одну строку. #}
-<div>
+{# Одно поле формы: подпись, поле, подсказка и ошибки. Галочки — в одну строку, варианты выбора — «таблетками». #}
+<div class="field">
   {% if field.widget_type == "checkbox" %}
-    <label>{{ field }} {{ field.label }}</label>
+    <label class="check-label">{{ field }}<span>{{ field.label }}</span></label>
+  {% elif field.widget_type == "radioselect" %}
+    <span class="field-label" id="{{ field.auto_id }}_label">{{ field.label }}</span>
+    <div class="chip-choice" role="radiogroup" aria-labelledby="{{ field.auto_id }}_label">{{ field }}</div>
   {% else %}
     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
     {{ field }}

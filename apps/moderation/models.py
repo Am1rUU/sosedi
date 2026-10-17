@@ -56,3 +56,28 @@ class Report(models.Model):
 
     def __str__(self) -> str:
         return f"{self.get_reason_display()} — на {self.reported_user}"
+
+
+class Block(models.Model):
+    """Пользователь заблокировал другого пользователя.
+
+    Блокировка действует в обе стороны: люди перестают видеть друг друга
+    в лентах, общие мэтчи закрываются, новый мэтч между ними невозможен.
+    Заблокированный об этом не уведомляется.
+    """
+
+    blocker = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="blocks_made", verbose_name="кто заблокировал"
+    )
+    blocked = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="blocks_received", verbose_name="кого"
+    )
+    created_at = models.DateTimeField("когда", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "блокировка"
+        verbose_name_plural = "блокировки"
+        constraints = [models.UniqueConstraint(fields=["blocker", "blocked"], name="unique_block")]
+
+    def __str__(self) -> str:
+        return f"{self.blocker} заблокировал {self.blocked}"

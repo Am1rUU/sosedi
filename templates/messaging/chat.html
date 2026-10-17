@@ -1,48 +1,103 @@
 {% extends "base.html" %}
-{% block title %}Чат — Соседи{% endblock %}
-{% block content %}
-<p class="small"><a href="{% url 'matching:matches' %}">← Все мэтчи</a></p>
-<h1 style="margin-bottom:4px">{{ other.profile.display_name|default:"Собеседник" }}</h1>
-<p class="muted small" style="margin-top:0">
-  По объявлению <a href="{{ match.listing.get_absolute_url }}">«{{ match.listing.title }}»</a> ·
-  <a href="{% url 'accounts:profile_detail' other.pk %}">анкета</a>
-</p>
+{% load humanize %}
+{% block title %}Чат с {{ other.profile.display_name|default:"собеседником" }} — Соседи{% endblock %}
+{% block tabbar_class %}{% endblock %}
+{% block header %}{% endblock %}
+{% block tabbar %}{% endblock %}
+{% block main %}
+<div class="chat-screen">
+  <header class="chat-header">
+    <a href="{% url 'matching:matches' %}" class="icon-btn" aria-label="Назад к мэтчам">{% include "includes/icon.html" with name="back" %}</a>
+    <a href="{% url 'accounts:profile_detail' other.pk %}" class="avatar avatar-sm" aria-label="Анкета собеседника">
+      {% if other.profile.photo %}<img src="{{ other.profile.photo.url }}" alt="">{% else %}{{ other.profile.display_name|first|default:"?" }}{% endif %}
+    </a>
+    <div class="grow">
+      <div class="chat-name truncate">{{ other.profile.display_name|default:"Собеседник" }}</div>
+      <span class="chat-room truncate">{% if i_am_owner %}хочет в вашу комнату{% else %}владелец комнаты{% endif %}</span>
+    </div>
+    {# Меню без JavaScript: <details> раскрывается по нажатию #}
+    <details class="chat-menu">
+      <summary class="icon-btn" aria-label="Ещё: пожаловаться, заблокировать">{% include "includes/icon.html" with name="more" %}</summary>
+      <div class="chat-menu-panel">
+        <a href="{% url 'accounts:profile_detail' other.pk %}">Открыть анкету</a>
+        <a href="{% url 'moderation:report_user' other.pk %}?listing={{ match.listing_id }}">Пожаловаться</a>
+        {% if not match.is_closed %}
+        <form method="post" action="{% url 'messaging:close' match.pk %}" style="margin:0" onsubmit="return confirm('Закрыть мэтч? Писать друг другу будет нельзя.')">
+          {% csrf_token %}<button type="submit">Закрыть мэтч</button>
+        </form>
+        {% endif %}
+        <form method="post" action="{% url 'moderation:block' other.pk %}" style="margin:0" onsubmit="return confirm('Заблокировать? Вы больше не увидите друг друга, а этот чат исчезнет.')">
+          {% csrf_token %}<button type="submit" class="danger">Заблокировать</button>
+        </form>
+      </div>
+    </details>
+  </header>
 
-<div class="card">
+  {% for message in messages %}
+    <div class="flash {% if message.tags == 'error' %}error{% endif %}" role="status" style="margin:12px 12px 0">{{ message }}</div>
+  {% endfor %}
+
+  <a class="room-pin" href="{{ match.listing.get_absolute_url }}">
+    <span class="room-pin-photo">{% with photo=match.listing.main_photo %}{% if photo %}<img src="{{ photo.image.url }}" alt="">{% endif %}{% endwith %}</span>
+    <span class="grow">
+      <span class="room-pin-title truncate" style="display:block">{{ match.listing.rent|intcomma }} ₽ · {{ match.listing.title }}</span>
+      <span class="room-pin-addr">{% include "includes/icon.html" with name="pin" %}<span class="truncate">{% if match.listing.address %}Адрес: {{ match.listing.address }}{% else %}{% if match.listing.metro %}м. {{ match.listing.metro }}{% else %}{{ match.listing.city }}{% endif %}{% endif %}</span></span>
+    </span>
+    <span class="muted" aria-hidden="true" style="width:18px;height:18px">{% include "includes/icon.html" with name="chevron" %}</span>
+  </a>
+
   {# Поллинг: каждые 5 секунд подгружаем новые сообщения. Позже можно заменить на WebSocket. #}
-  <div id="chat-box" class="chat-box"
+  <div id="chat-box" class="chat-box" aria-live="polite"
        hx-get="{% url 'messaging:messages' match.pk %}" hx-trigger="every 5s" hx-swap="innerHTML">
     {% include "messaging/_messages.html" %}
   </div>
 
   {% if match.is_closed %}
-    <p class="card-body muted">Мэтч закрыт. Отправка сообщений недоступна.</p>
+    <p class="chat-closed">Мэтч закрыт. Отправка сообщений недоступна.</p>
   {% else %}
+    {% if quick_phrases %}
+      <div class="quick" aria-label="Быстрые фразы">
+        {% for phrase in quick_phrases %}<button type="button" data-phrase="{{ phrase }}">{{ phrase|truncatechars:34 }}</button>{% endfor %}
+      </div>
+    {% endif %}
     <form class="chat-form" method="post" action="{% url 'messaging:send' match.pk %}"
           hx-post="{% url 'messaging:send' match.pk %}" hx-target="#chat-box" hx-swap="innerHTML"
-          hx-on::after-request="if(event.detail.successful) this.reset()">
+          hx-on::after-request="if(event.detail.successful){this.reset(); var q=document.querySelector('.quick'); if(q) q.remove();}">
       {% csrf_token %}
-      <textarea name="text" rows="2" maxlength="2000" placeholder="Сообщение…" required></textarea>
-      <button class="btn btn-primary" type="submit">Отправить</button>
+      <label for="chat-text" class="visually-hidden">Сообщение</label>
+      <textarea id="chat-text" name="text" rows="1" maxlength="2000" placeholder="Сообщение…" required>{{ prefill }}</textarea>
+      <button class="send-btn" type="submit" aria-label="Отправить">{% include "includes/icon.html" with name="send" %}</button>
     </form>
   {% endif %}
 </div>
+{% endblock %}
 
-<p class="muted small" style="margin-top:14px">
-  Безопасность: не переводите деньги до просмотра и подписания договора.
-  <a href="{% url 'moderation:report_user' other.pk %}">Пожаловаться</a>
-</p>
-{% if not match.is_closed %}
-  <form method="post" action="{% url 'messaging:close' match.pk %}" onsubmit="return confirm('Закрыть мэтч? Писать друг другу будет нельзя.')">
-    {% csrf_token %}
-    <button class="btn btn-danger small">Закрыть мэтч</button>
-  </form>
-{% endif %}
-
+{% block scripts %}
 <script>
-  // Прокручиваем чат к последнему сообщению при открытии и после каждого обновления
-  function scrollChat() { const box = document.getElementById("chat-box"); if (box) box.scrollTop = box.scrollHeight; }
+  // Прокрутка к последнему сообщению при открытии и после обновлений
+  function scrollChat() { var box = document.getElementById("chat-box"); if (box) box.scrollTop = box.scrollHeight; }
   document.addEventListener("DOMContentLoaded", scrollChat);
-  document.addEventListener("htmx:afterSwap", (e) => { if (e.target.id === "chat-box") scrollChat(); });
+  document.addEventListener("htmx:afterSwap", function (e) { if (e.target.id === "chat-box") scrollChat(); });
+  // Поле ввода растёт по мере набора текста (до 140 px), дальше — прокрутка
+  function autosize() { var f = document.getElementById("chat-text"); if (!f) return; f.style.height = "auto"; f.style.height = Math.min(f.scrollHeight + 2, 140) + "px"; }
+  document.addEventListener("input", function (e) { if (e.target.id === "chat-text") autosize(); });
+  document.addEventListener("DOMContentLoaded", autosize);
+  document.addEventListener("htmx:afterRequest", function () { window.setTimeout(autosize, 0); });
+  // Быстрые фразы подставляются в поле ввода
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-phrase]");
+    if (!btn) return;
+    var field = document.getElementById("chat-text");
+    field.value = btn.dataset.phrase;
+    autosize();
+    field.focus();
+  });
+  // Enter — отправить, Shift+Enter — новая строка (на компьютере)
+  document.addEventListener("keydown", function (e) {
+    if (e.target.id !== "chat-text" || e.key !== "Enter" || e.shiftKey || e.isComposing) return;
+    if (window.matchMedia("(pointer: coarse)").matches) return;  // на телефоне Enter — перенос строки
+    e.preventDefault();
+    e.target.form.requestSubmit();
+  });
 </script>
 {% endblock %}

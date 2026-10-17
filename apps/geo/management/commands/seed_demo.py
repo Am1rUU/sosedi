@@ -11,7 +11,8 @@ from datetime import date, timedelta
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from apps.accounts.models import Profile, User
+from apps.accounts.models import Invite, Profile, User
+from apps.accounts.services import create_invites, invite_url
 from apps.geo.models import City
 from apps.listings.models import Listing
 from apps.matching.models import Swipe
@@ -178,3 +179,10 @@ class Command(BaseCommand):
         self.stdout.write(
             "Попробуйте войти как seeker1@sosedi.local (есть мэтч) или owner2@sosedi.local (есть входящий лайк)."
         )
+
+        # Пара приглашений, чтобы проверить регистрацию в закрытом режиме
+        if not Invite.objects.filter(note="демо").exists():
+            create_invites(2, note="демо")
+        self.stdout.write("Ссылки-приглашения для проверки регистрации:")
+        for invite in Invite.objects.usable().filter(note="демо"):
+            self.stdout.write(f"  {invite_url(invite)}")

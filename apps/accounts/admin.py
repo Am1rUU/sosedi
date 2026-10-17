@@ -1,7 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.utils.html import format_html
 
-from .models import Profile, User
+from .models import Invite, Profile, User
+from .services import invite_url
 
 
 class ProfileInline(admin.StackedInline):
@@ -40,3 +42,37 @@ class ProfileAdmin(admin.ModelAdmin):
     list_editable = ("is_hidden",)
     search_fields = ("display_name", "user__email", "about")
     raw_id_fields = ("user",)
+
+
+@admin.register(Invite)
+class InviteAdmin(admin.ModelAdmin):
+    """Приглашения для закрытого теста.
+
+    Как пригласить человека: «Добавить приглашение» → впишите, для кого →
+    сохраните → скопируйте ссылку из колонки «Ссылка» и отправьте её.
+    """
+
+    list_display = ("code", "note", "link", "status", "used_by", "created_at")
+    list_filter = ("is_active",)
+    search_fields = ("code", "note", "used_by__email")
+    readonly_fields = ("code", "link", "used_by", "used_at", "created_at")
+    fields = ("note", "is_active", "code", "link", "used_by", "used_at", "created_at")
+    actions = ["revoke"]
+
+    @admin.display(description="Ссылка для приглашения")
+    def link(self, obj):
+        if not obj.pk:
+            return "Появится после сохранения"
+        url = invite_url(obj)
+        return format_html('<input type="text" value="{}" readonly style="width: 28em" onclick="this.select()">', url)
+
+    @admin.display(description="Статус")
+    def status(self, obj):
+        if obj.used_by_id:
+            return "Использовано"
+        return "Ждёт" if obj.is_active else "Отозвано"
+
+    @admin.action(description="Отозвать выбранные приглашения")
+    def revoke(self, request, queryset):
+        updated = queryset.filter(used_by__isnull=True).update(is_active=False)
+        self.message_user(request, f"Отозвано приглашений: {updated}")

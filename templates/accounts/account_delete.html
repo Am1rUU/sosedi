@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Удаление аккаунта — Соседи{% endblock %}
+{% block content %}
+<div class="back-row">
+  <a href="{% url 'accounts:profile_edit' %}" class="icon-btn" aria-label="Назад к анкете">{% include "includes/icon.html" with name="back" %}</a>
+</div>
+<h1 class="page-title">Удалить аккаунт?</h1>
+<p class="page-lead">Удалятся анкета, объявления, все фото, мэтчи и переписки. Восстановить их будет нельзя.</p>
+<form method="post" class="form-card">
+  {% csrf_token %}
+  {% include "includes/_field.html" with field=form.password %}
+  <button type="submit" class="btn btn-block" style="border-color:var(--danger);color:var(--danger)">Удалить навсегда</button>
+</form>
+<a class="btn btn-ghost btn-block" href="{% url 'accounts:profile_edit' %}">Передумал(а)</a>
+{% endblock %}

@@ -1,8 +1,19 @@
 {% extends "base.html" %}
+{% load humanize %}
 {% block title %}Комнаты — Соседи{% endblock %}
+{% block header_actions %}
+  <a class="icon-btn" href="{% url 'accounts:profile_edit' %}" aria-label="Параметры поиска">
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+  </a>
+{% endblock %}
 {% block content %}
-<h1>Комнаты в городе {{ user.profile.city }}</h1>
-<p class="muted small">Лайкните понравившиеся. Если владелец тоже лайкнет вашу анкету — откроется чат.</p>
+{% with p=user.profile %}
+<ul class="chips" style="margin-bottom:14px" aria-label="Параметры поиска">
+  <li class="chip chip-dark">{{ p.city }}</li>
+  {% if p.budget_max %}<li class="chip">до {{ p.budget_max|intcomma }} ₽</li>{% endif %}
+  {% if p.move_in_date %}<li class="chip">заезд с {{ p.move_in_date|date:"j E" }}</li>{% endif %}
+</ul>
+{% endwith %}
 <div id="feed-slot">
   {% include "matching/_listing_card.html" %}
 </div>

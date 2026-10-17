@@ -5,6 +5,7 @@
 нет: роль определяется тем, что человек делает в сервисе.
 """
 
+import secrets
 from datetime import date
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
@@ -148,3 +149,51 @@ class Profile(models.Model):
     def is_complete(self) -> bool:
         """Достаточно ли заполнена анкета, чтобы участвовать в ленте."""
         return bool(self.display_name and self.city_id)
+
+
+def generate_invite_code() -> str:
+    """Короткий код приглашения без похожих символов (0/O, 1/I/L), чтобы его было легко продиктовать."""
+    alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+    return "".join(secrets.choice(alphabet) for _ in range(8))
+
+
+class InviteQuerySet(models.QuerySet):
+    def usable(self):
+        """Приглашения, по которым ещё можно зарегистрироваться."""
+        return self.filter(is_active=True, used_by__isnull=True)
+
+
+class Invite(models.Model):
+    """Одноразовое приглашение для регистрации в режиме закрытого теста.
+
+    Создаётся в админке (или командой create_invites). Владелец сервиса
+    отправляет человеку ссылку вида /accounts/signup/?invite=КОД.
+    """
+
+    code = models.CharField("код", max_length=16, unique=True, default=generate_invite_code)
+    note = models.CharField("для кого", max_length=120, blank=True, help_text="Например: «Маша, коллега»")
+    is_active = models.BooleanField("действует", default=True, help_text="Снимите галочку, чтобы отозвать приглашение")
+    created_at = models.DateTimeField("создано", auto_now_add=True)
+    used_by = models.OneToOneField(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="invite",
+        verbose_name="кто зарегистрировался",
+    )
+    used_at = models.DateTimeField("использовано", null=True, blank=True)
+
+    objects = InviteQuerySet.as_manager()
+
+    class Meta:
+        verbose_name = "приглашение"
+        verbose_name_plural = "приглашения"
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.code}{' — ' + self.note if self.note else ''}"
+
+    @property
+    def is_usable(self) -> bool:
+        return self.is_active and self.used_by_id is None

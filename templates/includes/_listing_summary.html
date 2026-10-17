@@ -1,17 +1,23 @@
-{# Основная информация об объявлении — общая для ленты и страницы объявления #}
-<div class="price">{{ listing.rent }} ₽<span class="muted small" style="font-weight:400"> / мес{% if listing.bills_included %}, коммуналка включена{% endif %}</span></div>
-<h2 style="margin:6px 0">{{ listing.title }}</h2>
-<p class="muted" style="margin:0">
-  {{ listing.city }}{% if listing.district %}, {{ listing.district }}{% endif %}{% if listing.metro %} · м. {{ listing.metro }}{% endif %}
-</p>
-<ul class="tags">
-  <li>{{ listing.get_room_type_display }}</li>
-  <li>Свободно с {{ listing.available_from|date:"j E" }}</li>
-  {% if listing.min_term_months > 1 %}<li>от {{ listing.min_term_months }} мес.</li>{% endif %}
-  <li>Живёт: {{ listing.flatmates_count }}</li>
-  {% if listing.furnished %}<li>С мебелью</li>{% endif %}
-  {% if listing.deposit %}<li>Залог {{ listing.deposit }} ₽</li>{% endif %}
-  {% if listing.pets_allowed %}<li>Можно с животными</li>{% endif %}
-  {% if listing.smoking_allowed %}<li>Можно курить</li>{% endif %}
-  {% if listing.preferred_gender != "any" %}<li>{{ listing.get_preferred_gender_display }}</li>{% endif %}
+{% load humanize %}{# Основная информация об объявлении — общая для ленты и страницы объявления #}
+<div class="price-row">
+  <span class="price">{{ listing.rent|intcomma }} ₽</span>
+  <span class="price-note">/ мес · {% if listing.bills_included %}коммуналка включена{% else %}плюс коммуналка{% endif %}</span>
+</div>
+<div class="card-title">{{ listing.title }}</div>
+{% if listing.metro or listing.district %}
+<div class="metro">
+  {% if listing.metro %}<span class="metro-m" aria-hidden="true">М</span><span>{{ listing.metro }}{% if listing.district and listing.district != listing.metro %} · {{ listing.district }}{% endif %}</span>
+  {% else %}{% include "includes/icon.html" with name="pin" %}<span>{{ listing.district }}</span>{% endif %}
+</div>
+{% endif %}
+<ul class="chips">
+  <li class="chip">{% if listing.is_available_now %}Свободно сейчас{% else %}Свободно с {{ listing.available_from|date:"j E" }}{% endif %}</li>
+  {% if listing.room_type != "room" %}<li class="chip">{{ listing.get_room_type_display }}</li>{% endif %}
+  <li class="chip">Живёт: {{ listing.flatmates_count }}</li>
+  {% if listing.furnished %}<li class="chip">С мебелью</li>{% endif %}
+  {% if listing.min_term_months > 1 %}<li class="chip">от {{ listing.min_term_months }} мес.</li>{% endif %}
+  {% if listing.deposit %}<li class="chip">Залог {{ listing.deposit|intcomma }} ₽</li>{% endif %}
+  {% if listing.pets_allowed %}<li class="chip">Можно с животными</li>{% endif %}
+  {% if listing.smoking_allowed %}<li class="chip">Можно курить</li>{% endif %}
+  {% if listing.preferred_gender != "any" %}<li class="chip">{{ listing.get_preferred_gender_display }}</li>{% endif %}
 </ul>

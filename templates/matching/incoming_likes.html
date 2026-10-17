@@ -1,32 +1,43 @@
 {% extends "base.html" %}
+{% load humanize %}
 {% block title %}Кто лайкнул — Соседи{% endblock %}
+{% block header %}{% endblock %}
 {% block content %}
-<h1>Кто лайкнул «{{ listing.title }}»</h1>
-<p class="muted small">Эти люди ждут вашего ответа. Ответный лайк сразу откроет чат.</p>
+<div class="back-row" style="margin-top:4px">
+  <a href="{% url 'listings:my' %}" class="icon-btn" aria-label="Назад к объявлениям">{% include "includes/icon.html" with name="back" %}</a>
+  <div class="grow">
+    <div class="muted small">Ждут вашего ответа</div>
+    <div class="truncate" style="font-weight:600">{{ listing.title }}</div>
+  </div>
+</div>
+<p class="page-lead" style="margin-top:8px">Эти люди лайкнули вашу комнату. Ответный лайк сразу откроет чат.</p>
 
 {% if people %}
-  <div class="card">
+  <div class="list">
     {% for person in people %}
       <div class="list-item">
-        {% if person.profile.photo %}<img class="avatar" src="{{ person.profile.photo.url }}" alt="">{% else %}<div class="avatar">{{ person.profile.display_name|first|default:"?" }}</div>{% endif %}
+        <a href="{% url 'accounts:profile_detail' person.pk %}" class="avatar" aria-label="Анкета: {{ person.profile.display_name }}">
+          {% if person.profile.photo %}<img src="{{ person.profile.photo.url }}" alt="">{% else %}{{ person.profile.display_name|first|default:"?" }}{% endif %}
+        </a>
         <div class="grow">
-          <a href="{% url 'accounts:profile_detail' person.pk %}"><b>{{ person.profile.display_name|default:"Без имени" }}</b></a>{% if person.profile.age %}, {{ person.profile.age }}{% endif %}
-          <div class="status truncate">{% if person.profile.budget_max %}до {{ person.profile.budget_max }} ₽ · {% endif %}{{ person.profile.occupation }}</div>
+          <a href="{% url 'accounts:profile_detail' person.pk %}" class="list-name" style="color:inherit;text-decoration:none">{{ person.profile.display_name|default:"Без имени" }}{% if person.profile.age %}, {{ person.profile.age }}{% endif %}</a>
+          <span class="list-sub truncate">{% if person.profile.budget_max %}до {{ person.profile.budget_max|intcomma }} ₽ · {% endif %}{{ person.profile.occupation }}</span>
         </div>
-        <form method="post" action="{% url 'matching:owner_swipe' listing.pk person.pk %}" class="btn-row" style="margin:0">
+        <form method="post" action="{% url 'matching:owner_swipe' listing.pk person.pk %}" class="btn-row" style="margin:0;flex-wrap:nowrap">
           {% csrf_token %}
           <input type="hidden" name="next" value="likes">
-          <button class="btn btn-pass" name="decision" value="pass" aria-label="Пропустить">✕</button>
-          <button class="btn btn-like" name="decision" value="like" aria-label="Лайк">♥</button>
+          <button class="icon-btn" name="decision" value="pass" aria-label="Пропустить: {{ person.profile.display_name }}">{% include "includes/icon.html" with name="x" %}</button>
+          <button class="icon-btn" name="decision" value="like" aria-label="Подходит: {{ person.profile.display_name }}" style="background:var(--green);border-color:var(--green);color:var(--on-green)">{% include "includes/icon.html" with name="heart" %}</button>
         </form>
       </div>
     {% endfor %}
   </div>
 {% else %}
   <div class="card empty">
-    <div class="icon">💌</div>
-    <p>Пока никто не лайкнул это объявление.</p>
-    <a class="btn btn-primary" href="{% url 'matching:owner_feed' listing.pk %}">Смотреть анкеты самому</a>
+    <div class="empty-icon">{% include "includes/icon.html" with name="heart" %}</div>
+    <h2>Пока никто не лайкнул</h2>
+    <p>Посмотрите анкеты сами — взаимный лайк откроет чат.</p>
+    <a class="btn btn-primary" href="{% url 'matching:owner_feed' listing.pk %}">Смотреть анкеты</a>
   </div>
 {% endif %}
 {% endblock %}

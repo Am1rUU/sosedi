@@ -2,7 +2,16 @@ from django.contrib import admin
 
 from apps.listings.models import Listing
 
-from .models import Report
+from .models import Block, Report
+
+
+@admin.register(Block)
+class BlockAdmin(admin.ModelAdmin):
+    """Кто кого заблокировал. Здесь же можно снять блокировку по просьбе пользователя."""
+
+    list_display = ("blocker", "blocked", "created_at")
+    search_fields = ("blocker__email", "blocked__email")
+    raw_id_fields = ("blocker", "blocked")
 
 
 @admin.register(Report)

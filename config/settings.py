@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",  # 34 000 вместо 34000
     # Модули проекта (модульный монолит: каждый модуль отвечает за свою область)
     "apps.accounts",  # пользователи и анкеты
     "apps.geo",  # города
@@ -67,6 +68,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Запрет индексации на время закрытого теста (управляется SITE_NOINDEX)
+    "config.middleware.NoIndexMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -81,6 +84,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "config.context_processors.site_flags",
             ],
         },
     },
@@ -111,6 +115,16 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
+
+# Хэширование паролей: Argon2 — современный стандарт (победитель Password Hashing
+# Competition). Остальные алгоритмы оставлены, чтобы старые пароли продолжали
+# работать: при следующем входе Django сам перехэширует их в Argon2.
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
 ]
 
 LOGIN_URL = "accounts:login"
@@ -145,8 +159,25 @@ STORAGES = {
     },
 }
 
-# Максимальный размер загружаемого фото (5 МБ)
-MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024
+# Максимальный размер загружаемого фото (10 МБ — фото с современных телефонов
+# бывают тяжёлыми). После загрузки фото всё равно сжимается и уменьшается.
+MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024
+# До какого размера по длинной стороне уменьшать фото
+MAX_PHOTO_SIDE_PX = 1600
+# Раздавать фото самим приложением (пока нет S3). Выключить после подключения хранилища.
+SERVE_MEDIA = env_bool("SERVE_MEDIA", default=True)
+
+# --- Кэш ------------------------------------------------------------------
+
+# Кэш нужен для ограничения частоты действий (попытки входа, свайпы, сообщения).
+# Файловый кэш общий для всех процессов gunicorn в одном контейнере и не требует
+# отдельного сервиса. Когда появится Redis, достаточно поменять BACKEND.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": os.environ.get("DJANGO_CACHE_DIR", "/tmp/sosedi-cache"),
+    }
+}
 
 # --- Продуктовые настройки ------------------------------------------------
 
@@ -163,6 +194,24 @@ FEED_BATCH_SIZE = 20
 
 # Сколько жалоб на пользователя автоматически скрывают его до проверки
 AUTO_HIDE_AFTER_REPORTS = int(os.environ.get("AUTO_HIDE_AFTER_REPORTS", "3"))
+
+# --- Закрытый тест --------------------------------------------------------
+
+# Регистрация только по приглашению. Для публичного запуска выключить: INVITE_ONLY=0
+INVITE_ONLY = env_bool("INVITE_ONLY", default=True)
+# Запрет индексации поисковиками (robots.txt, заголовок X-Robots-Tag, meta noindex)
+SITE_NOINDEX = env_bool("SITE_NOINDEX", default=True)
+# Адрес сайта — нужен, чтобы собирать полные ссылки-приглашения (в проде: https://ваш-домен)
+SITE_URL = os.environ.get("SITE_URL", "http://127.0.0.1:8000")
+
+# --- Защита от подбора пароля и спама -------------------------------------
+
+# Не продажа лимитов, а защита: обычный человек эти пороги не заметит,
+# а бот или скрипт упрётся в них сразу.
+LOGIN_MAX_FAILURES = 5  # неудачных попыток входа
+LOGIN_LOCKOUT_SECONDS = 15 * 60  # после этого вход блокируется на 15 минут
+SWIPE_LIMIT_PER_HOUR = int(os.environ.get("SWIPE_LIMIT_PER_HOUR", "300"))
+MESSAGE_LIMIT_PER_10_MIN = int(os.environ.get("MESSAGE_LIMIT_PER_10_MIN", "40"))
 
 # --- Безопасность в проде -------------------------------------------------
 

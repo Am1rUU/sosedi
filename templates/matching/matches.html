@@ -1,30 +1,61 @@
 {% extends "base.html" %}
 {% block title %}Мэтчи — Соседи{% endblock %}
+{% block header %}{% endblock %}
 {% block content %}
-<h1>Мэтчи</h1>
-{% if items %}
-  <div class="card">
-    {% for item in items %}
-      <a class="list-item" href="{% url 'messaging:chat' item.match.pk %}" style="text-decoration:none;color:inherit">
-        {% if item.other.profile.photo %}<img class="avatar" src="{{ item.other.profile.photo.url }}" alt="">{% else %}<div class="avatar">{{ item.other.profile.display_name|first|default:"?" }}</div>{% endif %}
-        <div class="grow">
-          <div><b>{{ item.other.profile.display_name|default:"Без имени" }}</b>
-            <span class="status">· {% if item.i_am_owner %}хочет в вашу комнату{% else %}владелец{% endif %} «{{ item.match.listing.title|truncatechars:30 }}»</span>
-          </div>
-          <div class="status truncate">
-            {% if item.last_message %}{% if item.last_message.sender_id == user.pk %}Вы: {% endif %}{{ item.last_message.text }}{% else %}Напишите первым!{% endif %}
-          </div>
-        </div>
-        {% if item.unread %}<span class="badge">{{ item.unread }}</span>{% endif %}
-      </a>
-    {% endfor %}
-  </div>
+<h1 class="page-title" style="margin-top:8px">Мэтчи</h1>
+
+<nav class="segmented" aria-label="Роль">
+  <a class="segment {% if role == 'seeker' %}active{% endif %}" href="?role=seeker" {% if role == 'seeker' %}aria-current="page"{% endif %}>Я ищу{% if seeker_count %} · {{ seeker_count }}{% endif %}</a>
+  <a class="segment {% if role == 'owner' %}active{% endif %}" href="?role=owner" {% if role == 'owner' %}aria-current="page"{% endif %}>Я сдаю{% if owner_count %} · {{ owner_count }}{% endif %}</a>
+</nav>
+
+{% if new_items or chat_items %}
+  {% if new_items %}
+    <h2 class="section-title">Новые — ещё не писали</h2>
+    <div class="new-row">
+      {% for item in new_items %}
+        <a class="new-match" href="{% url 'messaging:chat' item.match.pk %}">
+          <span class="new-match-ring">
+            <span class="avatar">{% if item.other.profile.photo %}<img src="{{ item.other.profile.photo.url }}" alt="">{% else %}{{ item.other.profile.display_name|first|default:"?" }}{% endif %}</span>
+          </span>
+          <span class="new-match-name">{{ item.other.profile.display_name|default:"Без имени" }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if chat_items %}
+    <h2 class="section-title">Переписки</h2>
+    <div class="list">
+      {% for item in chat_items %}
+        <a class="list-item" href="{% url 'messaging:chat' item.match.pk %}">
+          <span class="avatar">{% if item.other.profile.photo %}<img src="{{ item.other.profile.photo.url }}" alt="">{% else %}{{ item.other.profile.display_name|first|default:"?" }}{% endif %}</span>
+          <span class="grow">
+            <span class="list-top">
+              <span class="list-name">{{ item.other.profile.display_name|default:"Без имени" }}</span>
+              <span class="list-time">{{ item.last_message.created_at|date:"j E" }}</span>
+            </span>
+            <span class="list-sub truncate">{{ item.match.listing.title }}</span>
+            <span class="list-msg {% if item.unread %}unread{% endif %}">
+              <span class="truncate">{% if item.last_message.sender_id == user.pk %}Вы: {% endif %}{{ item.last_message.text }}</span>
+              {% if item.unread %}<span class="count-badge" aria-label="непрочитанных: {{ item.unread }}">{{ item.unread }}</span>{% endif %}
+            </span>
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
 {% else %}
-  <div class="card empty">
-    <div class="icon">💬</div>
-    <p>Мэтчей пока нет.</p>
-    <p class="muted">Лайкайте комнаты или анкеты — когда интерес будет взаимным, здесь появится чат.</p>
-    <a class="btn btn-primary" href="{% url 'matching:feed' %}">К ленте</a>
+  <div class="card empty" style="margin-top:18px">
+    <div class="empty-icon">{% include "includes/icon.html" with name="chat" %}</div>
+    <h2>Мэтчей пока нет</h2>
+    {% if role == 'owner' %}
+      <p>Смотрите анкеты по своим объявлениям — когда интерес будет взаимным, здесь появится чат.</p>
+      <a class="btn btn-primary" href="{% url 'listings:my' %}">К моим объявлениям</a>
+    {% else %}
+      <p>Лайкайте комнаты — когда владелец ответит взаимностью, здесь появится чат.</p>
+      <a class="btn btn-primary" href="{% url 'matching:feed' %}">К ленте</a>
+    {% endif %}
   </div>
 {% endif %}
 {% endblock %}
