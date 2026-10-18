@@ -146,10 +146,11 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
-# Фото пользователей. В проде заменить на S3-совместимое хранилище
-# (Yandex Object Storage / Selectel) через django-storages.
+# Фото пользователей. Папку можно переопределить через DJANGO_MEDIA_ROOT —
+# например, на Amvera это /data/media: папка /data там не стирается при обновлении.
+# Позже можно перейти на S3-совместимое хранилище через django-storages.
 MEDIA_URL = "media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", BASE_DIR / "media"))
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

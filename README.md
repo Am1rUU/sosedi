@@ -115,7 +115,37 @@ python manage.py makemigrations --check --dry-run
 | `FEED_RESURFACE_PASSED_AFTER_DAYS` | `14` | Через сколько дней пропущенная карточка снова появится в ленте |
 | `AUTO_HIDE_AFTER_REPORTS` | `3` | Сколько жалоб от разных людей скрывают анкету до проверки |
 
-## Выкладка на Timeweb Cloud (App Platform)
+## Выкладка на Amvera (основной вариант)
+
+Настройки хостинга лежат в `amvera.yml`: сборка из `Dockerfile`, порт 8000, постоянный диск в `/data`.
+При каждом старте контейнер сам применяет миграции и создаёт администратора (`docker-entrypoint.sh`).
+
+1. **База.** «PostgreSQL» → «Создать базу данных», тариф «Начальный» или выше. Имя базы и пользователя
+   любые, кроме `postgres`. Внутренний адрес для приложения: `amvera-<логин>-cnpg-<проект>-rw`
+   (точное значение — на вкладке «Инфо» базы).
+2. **Приложение.** «Приложения» → «Создать», тариф «Начальный» или выше.
+3. **Домен.** Вкладка «Домены» → «Добавить доменное имя» → «Бесплатный домен Амвера», тип HTTPS.
+4. **Переменные** (вкладка «Переменные», пароли и ключи — как «секрет»):
+
+   | Переменная | Значение |
+   |---|---|
+   | `DATABASE_URL` | `postgres://пользователь:пароль@amvera-<логин>-cnpg-<проект>-rw:5432/имя_базы` |
+   | `DJANGO_SECRET_KEY` | длинная случайная строка |
+   | `DJANGO_DEBUG` | `0` |
+   | `DJANGO_ALLOWED_HOSTS` | домен из шага 3 без `https://` |
+   | `DJANGO_CSRF_TRUSTED_ORIGINS` | тот же домен с `https://` |
+   | `SITE_URL` | тот же домен с `https://` |
+   | `DJANGO_SECURE_SSL_REDIRECT` | `0` — https обеспечивает сам Amvera |
+   | `DJANGO_MEDIA_ROOT` | `/data/media` — фото на постоянном диске, не пропадают при обновлении |
+   | `DJANGO_SUPERUSER_EMAIL`, `DJANGO_SUPERUSER_PASSWORD` | администратор |
+
+5. **Код из GitHub.** Вкладка «Репозиторий» → GitHub → ветка `main`, придумать секрет, скопировать адрес.
+   В GitHub: репозиторий → Settings → Webhooks → Add webhook: адрес из Amvera, Content type
+   `application/json`, тот же секрет, событие Push. Нужен также токен GitHub (classic, право `repo`),
+   его вставляют на той же вкладке Amvera. После этого каждый push в `main` выкатывается сам.
+6. **Проверка:** `https://домен/healthz/` отвечает `ok`, админка — `https://домен/admin/`.
+
+## Выкладка на Timeweb Cloud (App Platform, запасной вариант)
 
 Приложение собирается из `Dockerfile` в корне репозитория. При каждом старте контейнер сам
 применяет миграции, а статику раздаёт WhiteNoise, поэтому отдельный nginx не нужен.
@@ -148,7 +178,7 @@ python manage.py makemigrations --check --dry-run
 
 ## Выход в прод: чек-лист
 
-- [ ] Хостинг в РФ (Timeweb Cloud / Yandex Cloud / Selectel) — требование 152-ФЗ о локализации персданных.
+- [ ] Хостинг в РФ (Amvera / Timeweb Cloud / Yandex Cloud / Selectel) — требование 152-ФЗ о локализации персданных.
 - [ ] Политика конфиденциальности и пользовательское соглашение (согласие уже собирается при регистрации).
 - [ ] `DJANGO_DEBUG=0`, длинный `DJANGO_SECRET_KEY`, свой домен в `DJANGO_ALLOWED_HOSTS` и `DJANGO_CSRF_TRUSTED_ORIGINS`.
 - [ ] Управляемый PostgreSQL с бэкапами.

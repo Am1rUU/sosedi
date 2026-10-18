@@ -1,0 +1,16 @@
+# Настройки для хостинга Amvera (https://amvera.ru).
+# Проект собирается из Dockerfile в корне репозитория.
+meta:
+  environment: docker
+  toolchain:
+    name: docker
+
+build:
+  dockerfile: Dockerfile
+
+run:
+  # Постоянный диск: всё, что лежит в /data, не стирается при обновлении сайта.
+  # Фото пользователей кладём туда (переменная DJANGO_MEDIA_ROOT=/data/media).
+  persistenceMount: /data
+  # Порт, на котором сайт работает внутри контейнера
+  containerPort: 8000

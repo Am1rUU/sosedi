@@ -20,17 +20,14 @@ COPY . .
 # Собираем статику на этапе сборки образа (ключ нужен только формально)
 RUN DJANGO_SECRET_KEY=build-only DJANGO_DEBUG=0 python manage.py collectstatic --noinput
 
-# Запускаем не от root — базовая гигиена безопасности
+# Пользователь без прав root: от него работают процессы gunicorn
 RUN useradd --create-home appuser && mkdir -p /app/media && chown -R appuser /app
-USER appuser
 
 EXPOSE 8000
 
 # Адрес проверки здоровья для хостинга: /healthz/ (см. config/middleware.py)
 
-# При старте:
-# 1. применяем миграции;
-# 2. если заданы DJANGO_SUPERUSER_EMAIL и DJANGO_SUPERUSER_PASSWORD — создаём администратора
-#    (нужно, чтобы войти в админку на хостинге без консоли; если он уже есть — пропускаем);
-# 3. запускаем gunicorn.
-CMD ["sh", "-c", "python manage.py migrate --noinput && if [ -n \"$DJANGO_SUPERUSER_EMAIL\" ]; then python manage.py createsuperuser --noinput || echo 'Администратор уже существует, пропускаю'; fi && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --access-logfile -"]
+# Что происходит при старте (миграции, администратор, gunicorn) — см. docker-entrypoint.sh.
+# Контейнер стартует от root только чтобы подготовить папку для фото на подключённом диске хостинга,
+# сам сайт работает от appuser.
+CMD ["sh", "/app/docker-entrypoint.sh"]
