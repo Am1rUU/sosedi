@@ -98,12 +98,23 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # Локально по умолчанию SQLite (ничего не нужно ставить),
 # в Docker и проде — PostgreSQL через переменную DATABASE_URL.
-DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
-    )
-}
+try:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+            conn_max_age=600,
+        )
+    }
+except dj_database_url.ParseError as error:
+    # Частая ошибка: в пароле есть символы ? # @ / : + ) и т.п. — в адресе их нужно кодировать
+    # (? → %3F, + → %2B, ) → %29, @ → %40, # → %23, / → %2F, : → %3A).
+    from django.core.exceptions import ImproperlyConfigured
+
+    raise ImproperlyConfigured(
+        "Не удалось разобрать DATABASE_URL. Скорее всего, в пароле есть спецсимволы "
+        "(? # @ / : + и другие) — их нужно закодировать, например ? → %3F, + → %2B, ) → %29. "
+        "Закодировать пароль: python -c \"from urllib.parse import quote; print(quote('ПАРОЛЬ', safe=''))\""
+    ) from error
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
