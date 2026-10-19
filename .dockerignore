@@ -9,3 +9,10 @@ __pycache__
 db.sqlite3
 media
 staticfiles
+tests
+.github
+*.md
+start.command
+.env.example
+requirements-dev.txt
+.DS_Store
