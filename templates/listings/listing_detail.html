@@ -6,13 +6,25 @@
   <a href="javascript:history.back()" class="icon-btn" aria-label="Назад">{% include "includes/icon.html" with name="back" %}</a>
 </div>
 <article class="card">
-  {% if listing.photos.all %}
-    {% for photo in listing.photos.all %}
-      <div class="photo tall" {% if not forloop.first %}style="border-top:2px solid var(--surface)"{% endif %}><img src="{{ photo.image.url }}" alt="Фото {{ forloop.counter }}: {{ listing.title }}"></div>
-    {% endfor %}
+  {% with photos=listing.photos.all %}
+  {% if photos %}
+    {# Галерея: листается пальцем вбок, на компьютере — стрелками (static/js/gallery.js) #}
+    <div class="gallery" data-gallery tabindex="0" aria-roledescription="галерея" aria-label="Фото объявления">
+      <div class="gallery-track">
+        {% for photo in photos %}
+          <div class="gallery-slide"><img src="{{ photo.image.url }}" alt="Фото {{ forloop.counter }} из {{ photos|length }}: {{ listing.title }}" {% if not forloop.first %}loading="lazy"{% endif %}></div>
+        {% endfor %}
+      </div>
+      {% if photos|length > 1 %}
+        <span class="gallery-count" aria-live="polite"><span class="gallery-current">1</span> / {{ photos|length }}</span>
+        <button type="button" class="gallery-nav prev" aria-label="Предыдущее фото" disabled>{% include "includes/icon.html" with name="back" %}</button>
+        <button type="button" class="gallery-nav next" aria-label="Следующее фото">{% include "includes/icon.html" with name="chevron" %}</button>
+      {% endif %}
+    </div>
   {% else %}
     <div class="photo"><div class="photo-empty">{% include "includes/icon.html" with name="home" %}</div></div>
   {% endif %}
+  {% endwith %}
   <div class="card-body">
     {% if listing.status != "active" %}<span class="status-pill off">{{ listing.get_status_display }}</span>{% endif %}
     {% include "includes/_listing_summary.html" %}

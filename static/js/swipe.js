@@ -78,6 +78,10 @@
     var wasActive = drag.active;
     drag = null;
     if (!wasActive) return;
+    // После перетаскивания браузер присылает ещё и «клик» — помечаем карточку,
+    // чтобы gallery.js не принял конец свайпа за касание и не перелистнул фото
+    card.dataset.justDragged = "1";
+    window.setTimeout(function () { delete card.dataset.justDragged; }, 80);
     if (dx > THRESHOLD) return decide(card, "like");
     if (dx < -THRESHOLD) return decide(card, "pass");
     // Не дотянули — карточка плавно возвращается на место

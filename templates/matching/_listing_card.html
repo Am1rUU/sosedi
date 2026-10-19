@@ -8,16 +8,22 @@
   <div class="deck">
     {% if has_next %}<div class="deck-back" aria-hidden="true"></div>{% endif %}
     <article class="card swipe-card" data-swipe-card aria-label="{{ listing.title }}">
-      <div class="photo">
-        {% with photo=listing.main_photo %}
-          {% if photo %}<img src="{{ photo.image.url }}" alt="Фото: {{ listing.title }}" draggable="false">
-          {% else %}<div class="photo-empty">{% include "includes/icon.html" with name="home" %}</div>{% endif %}
-        {% endwith %}
+      {% with photos=listing.photos.all %}
+      <div class="photo" {% if photos|length > 1 %}data-photo-stack data-index="0"{% endif %}>
+        {% if photos %}
+          {% for photo in photos %}
+            <img class="stack-photo {% if forloop.first %}active{% endif %}" src="{{ photo.image.url }}" alt="Фото {{ forloop.counter }}: {{ listing.title }}" draggable="false" {% if not forloop.first %}loading="lazy"{% endif %}>
+          {% endfor %}
+          {% if photos|length > 1 %}
+            {# Полоски сверху показывают, какое фото открыто; касание справа — дальше, слева — назад #}
+            <div class="stack-bars" aria-hidden="true">{% for photo in photos %}<span class="stack-bar {% if forloop.first %}active{% endif %}"></span>{% endfor %}</div>
+          {% endif %}
+        {% else %}<div class="photo-empty">{% include "includes/icon.html" with name="home" %}</div>{% endif %}
         {% if listing.liked_me %}<span class="liked-badge">{% include "includes/icon.html" with name="heart" %}Владелец уже лайкнул вас</span>{% endif %}
-        {% with count=listing.photos.all|length %}{% if count > 1 %}<span class="photo-count">{{ count }} фото</span>{% endif %}{% endwith %}
         <span class="stamp stamp-like" aria-hidden="true">Нравится</span>
         <span class="stamp stamp-pass" aria-hidden="true">Пропуск</span>
       </div>
+      {% endwith %}
       <div class="card-body">
         {% include "includes/_listing_summary.html" %}
         {% if listing.fit_reasons %}

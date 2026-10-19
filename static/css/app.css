@@ -177,6 +177,28 @@ h1, h2, h3 { margin: 0; line-height: 1.2; }
 .photo-letter { font-family: var(--display); font-weight: 700; font-size: 64px; color: var(--photo-ink); opacity: .7; }
 .photo .liked-badge { position: absolute; left: 14px; bottom: 14px; }
 .photo-count { position: absolute; right: 14px; bottom: 14px; padding: 4px 10px; border-radius: 999px; background: rgba(23, 32, 27, .6); color: #FFFFFF; font-size: 12px; }
+/* Несколько фото в карточке ленты: видно одно, переключаются касанием по краям */
+.stack-photo { position: absolute; inset: 0; opacity: 0; transition: opacity .2s; }
+.stack-photo.active { opacity: 1; }
+.stack-bars { position: absolute; top: 10px; left: 12px; right: 12px; display: flex; gap: 4px; pointer-events: none; }
+.stack-bar { flex: 1; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .45); box-shadow: 0 0 2px rgba(0, 0, 0, .25); }
+.stack-bar.active { background: #FFFFFF; }
+
+/* Галерея на странице объявления: фото в ряд, листаются пальцем вбок */
+.gallery { position: relative; background: #111614; outline: none; }
+.gallery-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.gallery-track::-webkit-scrollbar { display: none; }
+.gallery-slide { flex: 0 0 100%; scroll-snap-align: center; height: clamp(260px, 52vh, 460px); display: flex; align-items: center; justify-content: center; }
+.gallery-slide img { width: 100%; height: 100%; object-fit: contain; }
+.gallery-count { position: absolute; right: 12px; bottom: 12px; padding: 4px 10px; border-radius: 999px; background: rgba(23, 32, 27, .7); color: #FFFFFF; font-size: 13px; }
+.gallery-nav { position: absolute; top: 50%; width: 40px; height: 40px; margin-top: -20px; border-radius: 50%; border: none; background: rgba(255, 255, 255, .9); color: #17201B; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.gallery-nav svg { width: 20px; height: 20px; }
+.gallery-nav.prev { left: 10px; }
+.gallery-nav.next { right: 10px; }
+.gallery-nav:disabled { opacity: 0; pointer-events: none; }
+/* На телефоне листают пальцем — стрелки не нужны */
+@media (hover: none) { .gallery-nav { display: none; } }
+
 /* Штампы, проявляющиеся при свайпе */
 .stamp { position: absolute; top: 22px; padding: 6px 14px; border-radius: 12px; border: 3px solid; font-family: var(--display); font-weight: 700; font-size: 20px; opacity: 0; transform: rotate(-10deg); pointer-events: none; background: rgba(255, 255, 255, .85); }
 .stamp-like { left: 18px; color: #1F6F54; border-color: #1F6F54; }

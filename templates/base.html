@@ -13,6 +13,7 @@
   {# HTMX и свайпы — локальные файлы, без внешних CDN #}
   <script src="{% static 'js/htmx.min.js' %}" defer></script>
   <script src="{% static 'js/swipe.js' %}" defer></script>
+  <script src="{% static 'js/gallery.js' %}" defer></script>
 </head>
 {# CSRF-токен передаётся во все HTMX-запросы через заголовок #}
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="{% block body_class %}{% endblock %}">
@@ -53,7 +54,7 @@
       {% include "includes/icon.html" with name="chat" %}Мэтчи
       {% if nav_badge %}<span class="tab-badge" aria-label="новых: {{ nav_badge }}">{{ nav_badge }}</span>{% endif %}
     </a>
-    <a class="tab {% if ns == 'listings' or un == 'owner_feed' or un == 'incoming_likes' %}active{% endif %}" href="{% url 'listings:my' %}">
+    <a class="tab {% if un == 'my' or un == 'create' or un == 'edit' or un == 'owner_feed' or un == 'incoming_likes' %}active{% endif %}" href="{% url 'listings:my' %}">
       {% include "includes/icon.html" with name="home" %}Сдаю
     </a>
     <a class="tab {% if ns == 'accounts' %}active{% endif %}" href="{% url 'accounts:profile_edit' %}">
