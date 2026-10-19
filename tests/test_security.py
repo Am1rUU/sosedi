@@ -361,3 +361,59 @@ def test_stale_invite_link_warns_immediately(client, settings):
     html = client.get(reverse("accounts:signup") + "?invite=STALE123").content.decode()
     assert "не найдено или уже использовано" in html
     assert 'id="id_invite_code"' in html  # можно ввести другой код
+
+
+def test_site_url_becomes_trusted_origin_and_host(monkeypatch):
+    """Домен из SITE_URL сам попадает в ALLOWED_HOSTS и CSRF_TRUSTED_ORIGINS."""
+    import importlib
+
+    import config.settings as project_settings
+
+    monkeypatch.setenv("SITE_URL", "https://am1ruu-sosedi.example/")
+    monkeypatch.setenv("DJANGO_ALLOWED_HOSTS", "localhost")
+    monkeypatch.delenv("DJANGO_CSRF_TRUSTED_ORIGINS", raising=False)
+    try:
+        reloaded = importlib.reload(project_settings)
+        assert reloaded.SITE_URL == "https://am1ruu-sosedi.example"
+        assert "am1ruu-sosedi.example" in reloaded.ALLOWED_HOSTS
+        assert "https://am1ruu-sosedi.example" in reloaded.CSRF_TRUSTED_ORIGINS
+    finally:
+        monkeypatch.undo()
+        importlib.reload(project_settings)
+
+
+def test_signup_behind_proxy_without_https_header(settings):
+    """Хостинг не передал X-Forwarded-Proto: форма всё равно принимается, если домен доверенный."""
+    from django.test import Client
+
+    settings.INVITE_ONLY = True
+    settings.ALLOWED_HOSTS = ["site.example"]
+    settings.CSRF_TRUSTED_ORIGINS = ["https://site.example"]
+    invite = Invite.objects.create()
+    browser = Client(enforce_csrf_checks=True, HTTP_HOST="site.example")
+    browser.get(reverse("accounts:signup") + f"?invite={invite.code}")
+    token = browser.cookies["csrftoken"].value
+    response = browser.post(
+        reverse("accounts:signup") + f"?invite={invite.code}",
+        {"csrfmiddlewaretoken": token, "email": "proxy@test.local", "invite_code": invite.code, **SIGNUP},
+        HTTP_ORIGIN="https://site.example",
+    )
+    assert response.status_code == 302
+    assert User.objects.filter(email="proxy@test.local").exists()
+
+
+def test_stale_form_shows_friendly_page(settings):
+    from django.test import Client
+
+    settings.INVITE_ONLY = True
+    invite = Invite.objects.create()
+    browser = Client(enforce_csrf_checks=True)
+    browser.get(reverse("accounts:signup") + f"?invite={invite.code}")
+    response = browser.post(
+        reverse("accounts:signup") + f"?invite={invite.code}",
+        {"csrfmiddlewaretoken": "устаревший-токен", "email": "s@test.local", "invite_code": invite.code, **SIGNUP},
+    )
+    html = response.content.decode()
+    assert response.status_code == 403
+    assert "Страница устарела" in html
+    assert f"?invite={invite.code}" in html  # кнопка ведёт обратно на ту же ссылку-приглашение

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Страница устарела — Соседи{% endblock %}
+{% block content %}
+<div class="card empty" style="margin-top:24px">
+  <div class="empty-icon">{% include "includes/icon.html" with name="shield" %}</div>
+  <h2>Страница устарела</h2>
+  <p>Так бывает, если форма была открыта давно или в другой вкладке вы вошли или вышли из аккаунта. Откройте форму заново и отправьте ещё раз — введённые данные придётся заполнить повторно.</p>
+  <a class="btn btn-primary" href="{{ retry_url }}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}">Открыть форму заново</a>
+</div>
+{% endblock %}

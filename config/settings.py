@@ -8,6 +8,7 @@
 
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import dj_database_url
 
@@ -233,7 +234,24 @@ INVITE_ONLY = env_bool("INVITE_ONLY", default=True)
 # Запрет индексации поисковиками (robots.txt, заголовок X-Robots-Tag, meta noindex)
 SITE_NOINDEX = env_bool("SITE_NOINDEX", default=True)
 # Адрес сайта — нужен, чтобы собирать полные ссылки-приглашения (в проде: https://ваш-домен)
-SITE_URL = os.environ.get("SITE_URL", "http://127.0.0.1:8000")
+SITE_URL = os.environ.get("SITE_URL", "http://127.0.0.1:8000").strip().rstrip("/")
+
+# Домен из SITE_URL автоматически считается своим: попадает в ALLOWED_HOSTS
+# и в доверенные источники для проверки форм (CSRF). Так достаточно правильно
+# задать одну переменную SITE_URL — меньше шансов ошибиться в трёх местах.
+# Особенно важно за прокси хостинга: если он не сообщает приложению, что запрос
+# пришёл по https, без доверенного источника любая отправка формы падает с ошибкой 403.
+_site = urlsplit(SITE_URL)
+if _site.scheme and _site.hostname:
+    if _site.hostname not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_site.hostname)
+    _site_origin = f"{_site.scheme}://{_site.netloc}"
+    for _origin in {_site_origin, _site_origin.replace("http://", "https://", 1)}:
+        if _origin not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(_origin)
+
+# Вместо служебной страницы «Ошибка проверки CSRF» — понятная страница в дизайне сайта
+CSRF_FAILURE_VIEW = "config.views.csrf_failure"
 
 # --- Защита от подбора пароля и спама -------------------------------------
 
