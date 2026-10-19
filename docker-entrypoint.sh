@@ -26,9 +26,16 @@ if [ -n "$DJANGO_SUPERUSER_EMAIL" ]; then
     python manage.py createsuperuser --noinput || echo "Администратор уже существует, пропускаю"
 fi
 
-# Порт: хостинг может передать свой через PORT, иначе 8000
+# Порты: основной — из PORT (по умолчанию 8000). Дополнительно слушаем 8080:
+# на него по умолчанию стучится Timeweb App Platform, если не распознал порт сам.
+MAIN_PORT="${PORT:-8000}"
+EXTRA_BIND=""
+if [ "$MAIN_PORT" != "8080" ]; then
+    EXTRA_BIND="--bind 0.0.0.0:8080"
+fi
+
 exec gunicorn config.wsgi:application \
-    --bind "0.0.0.0:${PORT:-8000}" \
+    --bind "0.0.0.0:$MAIN_PORT" $EXTRA_BIND \
     --workers 3 \
     $RUN_AS \
     --access-logfile -

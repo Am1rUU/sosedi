@@ -24,6 +24,8 @@ RUN DJANGO_SECRET_KEY=build-only DJANGO_DEBUG=0 python manage.py collectstatic -
 RUN useradd --create-home appuser && mkdir -p /app/media && chown -R appuser /app
 
 EXPOSE 8000
+# Запасной порт (см. docker-entrypoint.sh)
+EXPOSE 8080
 
 # Адрес проверки здоровья для хостинга: /healthz/ (см. config/middleware.py)
 
