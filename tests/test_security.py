@@ -329,3 +329,12 @@ def test_healthcheck_answers_on_internal_http(client, settings):
     response = client.get("/healthz/", HTTP_HOST="10.0.0.5:8000")
     assert response.status_code == 200
     assert response.content == b"ok"
+
+
+def test_admin_index_has_invite_shortcut(client, make_user):
+    admin_user = User.objects.create_superuser("boss@test.local", "pass12345!")
+    client.force_login(admin_user)
+    html = client.get("/admin/").content.decode()
+    assert "Создать приглашение" in html
+    assert "/admin/accounts/invite/add/" in html
+    assert "Пользователи" in html  # стандартный список разделов на месте
