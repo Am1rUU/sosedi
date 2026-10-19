@@ -157,9 +157,9 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
-# Фото пользователей. Папку можно переопределить через DJANGO_MEDIA_ROOT —
-# например, на Amvera это /data/media: папка /data там не стирается при обновлении.
-# Позже можно перейти на S3-совместимое хранилище через django-storages.
+# Фото пользователей. Без S3 они лежат в папке на диске (DJANGO_MEDIA_ROOT —
+# например, на Amvera это /data/media: папка /data там не стирается при обновлении).
+# С S3 (переменная S3_BUCKET, см. ниже) — в бакете хранилища.
 MEDIA_URL = "media/"
 MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", BASE_DIR / "media"))
 
@@ -180,6 +180,23 @@ MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024
 MAX_PHOTO_SIDE_PX = 1600
 # Раздавать фото самим приложением (пока нет S3). Выключить после подключения хранилища.
 SERVE_MEDIA = env_bool("SERVE_MEDIA", default=True)
+
+# Хранилище S3 (Timeweb Cloud). Включается, когда задан S3_BUCKET:
+# фото кладутся в бакет и не пропадают при обновлении сайта. Подробности — config/storage.py.
+S3_BUCKET = os.environ.get("S3_BUCKET", "").strip()
+if S3_BUCKET:
+    from config.storage import TIMEWEB_S3_ENDPOINT, TIMEWEB_S3_REGION, s3_storage
+
+    STORAGES["default"] = s3_storage(
+        bucket=S3_BUCKET,
+        access_key=os.environ.get("S3_ACCESS_KEY", ""),
+        secret_key=os.environ.get("S3_SECRET_KEY", ""),
+        endpoint_url=os.environ.get("S3_ENDPOINT_URL", TIMEWEB_S3_ENDPOINT),
+        region=os.environ.get("S3_REGION", TIMEWEB_S3_REGION),
+        addressing_style=os.environ.get("S3_ADDRESSING_STYLE", "path"),
+    )
+    # Фото отдаёт хранилище по подписанным ссылкам, приложению раздавать их не нужно
+    SERVE_MEDIA = False
 
 # --- Кэш ------------------------------------------------------------------
 

@@ -7,3 +7,5 @@ whitenoise==6.12.0        # раздача статики без отдельн�
 dj-database-url==3.1.2    # настройка БД одной строкой DATABASE_URL
 psycopg[binary]==3.3.6    # драйвер PostgreSQL
 gunicorn==26.2.0          # прод-сервер приложения
+django-storages[s3]==1.14.6  # хранение фото в S3 (Timeweb Cloud S3)
+boto3==1.43.114           # клиент S3 для django-storages
