@@ -38,8 +38,21 @@ def signup(request):
     if request.user.is_authenticated:
         return redirect("matching:feed")
 
-    initial = {"invite_code": request.GET.get("invite", "").strip().upper()}
-    form = SignUpForm(request.POST or None, initial=initial)
+    # Код берём из ссылки (?invite=КОД) или из формы, если человек ввёл его сам
+    code = (request.POST.get("invite_code") or request.GET.get("invite") or "").strip().upper()
+    form = SignUpForm(request.POST or None, initial={"invite_code": code})
+
+    # Статус приглашения для подсказки над формой:
+    # «ok» — по ссылке пришёл рабочий код, поле с кодом не показываем;
+    # «bad» — код устарел или уже использован, сразу говорим об этом;
+    # None — кода нет, человек вводит его сам.
+    invite_status = None
+    if settings.INVITE_ONLY and code:
+        invite_status = "ok" if Invite.objects.usable().filter(code=code).exists() else "bad"
+
+    def render_form():
+        return render(request, "accounts/signup.html", {"form": form, "invite_status": invite_status, "code": code})
+
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
             if settings.INVITE_ONLY:
@@ -47,7 +60,8 @@ def signup(request):
                 invite = Invite.objects.select_for_update().filter(pk=form.invite.pk, used_by__isnull=True).first()
                 if invite is None:
                     form.add_error("invite_code", "Приглашение уже использовано")
-                    return render(request, "accounts/signup.html", {"form": form})
+                    invite_status = "bad"
+                    return render_form()
             user = form.save()
             if settings.INVITE_ONLY:
                 invite.used_by = user
@@ -56,7 +70,7 @@ def signup(request):
         login(request, user, backend="django.contrib.auth.backends.ModelBackend")
         messages.success(request, "Добро пожаловать! Расскажите о себе — это займёт пару минут.")
         return redirect("accounts:profile_edit")
-    return render(request, "accounts/signup.html", {"form": form})
+    return render_form()
 
 
 class RateLimitedLoginView(LoginView):

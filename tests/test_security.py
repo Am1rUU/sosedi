@@ -338,3 +338,26 @@ def test_admin_index_has_invite_shortcut(client, make_user):
     assert "Создать приглашение" in html
     assert "/admin/accounts/invite/add/" in html
     assert "Пользователи" in html  # стандартный список разделов на месте
+
+
+def test_invite_link_hides_code_field_when_valid(client, settings):
+    settings.INVITE_ONLY = True
+    invite = Invite.objects.create()
+    html = client.get(reverse("accounts:signup") + f"?invite={invite.code}").content.decode()
+    assert "Приглашение действует" in html
+    assert f'type="hidden" name="invite_code" value="{invite.code}"' in html
+    assert 'id="id_invite_code"' not in html  # видимого поля для кода нет
+
+    # Регистрация проходит, хотя человек код не вводил
+    client.post(
+        reverse("accounts:signup") + f"?invite={invite.code}",
+        {"email": "link@test.local", "invite_code": invite.code, **SIGNUP},
+    )
+    assert User.objects.filter(email="link@test.local").exists()
+
+
+def test_stale_invite_link_warns_immediately(client, settings):
+    settings.INVITE_ONLY = True
+    html = client.get(reverse("accounts:signup") + "?invite=STALE123").content.decode()
+    assert "не найдено или уже использовано" in html
+    assert 'id="id_invite_code"' in html  # можно ввести другой код

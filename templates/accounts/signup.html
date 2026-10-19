@@ -2,15 +2,28 @@
 {% block title %}Регистрация — Соседи{% endblock %}
 {% block content %}
 <h1 class="page-title">Регистрация</h1>
-{% if INVITE_ONLY %}
-  <p class="page-lead">Сейчас закрытый тест: нужен код приглашения. Если вы пришли по ссылке, он уже подставлен.</p>
+
+{% if invite_status == "ok" %}
+  {# Пришли по рабочей ссылке — код уже есть, вводить ничего не нужно #}
+  <div class="flash" role="status">{% include "includes/icon.html" with name="check" %} Приглашение действует. Осталось придумать пароль.</div>
+{% elif invite_status == "bad" %}
+  <div class="flash error" role="alert">Это приглашение не найдено или уже использовано. Попросите у того, кто вас пригласил, новую ссылку.</div>
+{% elif INVITE_ONLY %}
+  <p class="page-lead">Сейчас закрытый тест: регистрация только по приглашению. Откройте ссылку, которую вам прислали, или введите код из неё.</p>
 {% else %}
   <p class="page-lead">Пара минут — и можно смотреть комнаты или искать соседа.</p>
 {% endif %}
+
 <form method="post" novalidate class="form-card auth-card">
   {% csrf_token %}
   {% if form.non_field_errors %}<ul class="errorlist nonfield">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-  {% if form.invite_code %}{% include "includes/_field.html" with field=form.invite_code %}{% endif %}
+  {% if form.invite_code %}
+    {% if invite_status == "ok" %}
+      <input type="hidden" name="invite_code" value="{{ code }}">
+    {% else %}
+      {% include "includes/_field.html" with field=form.invite_code %}
+    {% endif %}
+  {% endif %}
   {% include "includes/_field.html" with field=form.email %}
   {% include "includes/_field.html" with field=form.password1 %}
   {% include "includes/_field.html" with field=form.password2 %}

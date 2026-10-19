@@ -140,6 +140,7 @@ h1, h2, h3 { margin: 0; line-height: 1.2; }
 /* --- Уведомления -------------------------------------------------------------- */
 .flash { padding: 12px 16px; border-radius: 16px; margin: 0 0 14px; background: var(--mint); color: var(--mint-ink); font-size: 15px; }
 .flash.error { background: var(--danger-bg); color: var(--danger); }
+.flash svg { width: 16px; height: 16px; vertical-align: -3px; margin-right: 4px; }
 .notice { display: flex; gap: 8px; align-items: flex-start; padding: 12px 14px; border-radius: 16px; background: var(--warn-bg); color: var(--warn-ink); font-size: 14px; line-height: 1.4; }
 .notice svg { flex: none; width: 16px; height: 16px; margin-top: 2px; }
 
