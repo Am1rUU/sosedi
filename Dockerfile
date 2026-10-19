@@ -10,6 +10,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# curl и wget нужны хостингу (Timeweb), чтобы проверять /healthz/ изнутри контейнера.
+# В облегчённом образе Python их нет, и без них проверка здоровья никогда не проходит.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl wget \
+    && rm -rf /var/lib/apt/lists/*
+
 # Сначала ставим зависимости — этот слой кэшируется, пока не изменится requirements.txt
 COPY requirements.txt .
 RUN pip install -r requirements.txt
@@ -24,8 +30,6 @@ RUN DJANGO_SECRET_KEY=build-only DJANGO_DEBUG=0 python manage.py collectstatic -
 RUN useradd --create-home appuser && mkdir -p /app/media && chown -R appuser /app
 
 EXPOSE 8000
-# Запасной порт (см. docker-entrypoint.sh)
-EXPOSE 8080
 
 # Адрес проверки здоровья для хостинга: /healthz/ (см. config/middleware.py)
 
