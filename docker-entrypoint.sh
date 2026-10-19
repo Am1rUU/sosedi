@@ -20,10 +20,23 @@ else
     RUN_AS=""
 fi
 
+if [ -z "$DATABASE_URL" ]; then
+    echo "ВНИМАНИЕ: не задан DATABASE_URL — используется файл SQLite внутри контейнера."
+    echo "ВНИМАНИЕ: все данные (пользователи, анкеты, приглашения) пропадут при следующем обновлении сайта."
+    echo "ВНИМАНИЕ: подключите PostgreSQL и пропишите строку подключения в переменную DATABASE_URL."
+fi
+
 python manage.py migrate --noinput
 
 if [ -n "$DJANGO_SUPERUSER_EMAIL" ]; then
     python manage.py createsuperuser --noinput || echo "Администратор уже существует, пропускаю"
+fi
+
+# Миграции выполнялись от root. Если база — файл SQLite, отдаём его appuser,
+# иначе сайт сможет только читать базу, а вход и любые изменения упадут с ошибкой 500
+# («attempt to write a readonly database»).
+if [ -z "$DATABASE_URL" ] && [ -n "$RUN_AS" ]; then
+    chown appuser:appuser /app /app/db.sqlite3* 2>/dev/null || true
 fi
 
 # Порт: хостинг может передать свой через PORT, иначе 8000
