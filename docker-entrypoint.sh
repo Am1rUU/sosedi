@@ -20,10 +20,15 @@ else
     RUN_AS=""
 fi
 
-if [ -z "$DATABASE_URL" ]; then
-    echo "ВНИМАНИЕ: не задан DATABASE_URL — используется файл SQLite внутри контейнера."
+# Диагностика: какие переменные базы видит контейнер (только имена и длина, без значений)
+echo "Переменные базы в контейнере: $(env | cut -d= -f1 | grep -E '^(DATABASE|DB_|POSTGRES|PG)' | tr '\n' ' ')"
+echo "Длина DATABASE_URL: ${#DATABASE_URL} символов"
+python manage.py shell -c "from django.db import connection as c; print('Используемая база:', c.vendor, c.settings_dict.get('HOST') or c.settings_dict.get('NAME'))" 2>/dev/null | tail -1 || true
+
+if [ -z "$DATABASE_URL" ] && [ -z "$DB_HOST" ]; then
+    echo "ВНИМАНИЕ: не задан ни DATABASE_URL, ни DB_HOST — используется файл SQLite внутри контейнера."
     echo "ВНИМАНИЕ: все данные (пользователи, анкеты, приглашения) пропадут при следующем обновлении сайта."
-    echo "ВНИМАНИЕ: подключите PostgreSQL и пропишите строку подключения в переменную DATABASE_URL."
+    echo "ВНИМАНИЕ: подключите PostgreSQL через DATABASE_URL или переменные DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD."
 fi
 
 python manage.py migrate --noinput
@@ -35,7 +40,7 @@ fi
 # Миграции выполнялись от root. Если база — файл SQLite, отдаём его appuser,
 # иначе сайт сможет только читать базу, а вход и любые изменения упадут с ошибкой 500
 # («attempt to write a readonly database»).
-if [ -z "$DATABASE_URL" ] && [ -n "$RUN_AS" ]; then
+if [ -z "$DATABASE_URL" ] && [ -z "$DB_HOST" ] && [ -n "$RUN_AS" ]; then
     chown appuser:appuser /app /app/db.sqlite3* 2>/dev/null || true
 fi
 

@@ -99,23 +99,39 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # Локально по умолчанию SQLite (ничего не нужно ставить),
 # в Docker и проде — PostgreSQL через переменную DATABASE_URL.
-try:
+# Второй способ — отдельные переменные DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD.
+# Пароль в них не нужно кодировать, поэтому этот способ надёжнее, если в пароле есть спецсимволы.
+if os.environ.get("DB_HOST", "").strip():
     DATABASES = {
-        "default": dj_database_url.config(
-            default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-            conn_max_age=600,
-        )
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "HOST": os.environ["DB_HOST"].strip(),
+            "PORT": os.environ.get("DB_PORT", "5432").strip() or "5432",
+            "NAME": os.environ.get("DB_NAME", "").strip(),
+            "USER": os.environ.get("DB_USER", "").strip(),
+            "PASSWORD": os.environ.get("DB_PASSWORD", ""),
+            "CONN_MAX_AGE": 600,
+            "OPTIONS": {"connect_timeout": 10},
+        }
     }
-except dj_database_url.ParseError as error:
-    # Частая ошибка: в пароле есть символы ? # @ / : + ) и т.п. — в адресе их нужно кодировать
-    # (? → %3F, + → %2B, ) → %29, @ → %40, # → %23, / → %2F, : → %3A).
-    from django.core.exceptions import ImproperlyConfigured
+else:
+    try:
+        DATABASES = {
+            "default": dj_database_url.config(
+                default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+                conn_max_age=600,
+            )
+        }
+    except dj_database_url.ParseError as error:
+        # Частая ошибка: в пароле есть символы ? # @ / : + ) и т.п. — в адресе их нужно кодировать
+        # (? → %3F, + → %2B, ) → %29, @ → %40, # → %23, / → %2F, : → %3A).
+        from django.core.exceptions import ImproperlyConfigured
 
-    raise ImproperlyConfigured(
-        "Не удалось разобрать DATABASE_URL. Скорее всего, в пароле есть спецсимволы "
-        "(? # @ / : + и другие) — их нужно закодировать, например ? → %3F, + → %2B, ) → %29. "
-        "Закодировать пароль: python -c \"from urllib.parse import quote; print(quote('ПАРОЛЬ', safe=''))\""
-    ) from error
+        raise ImproperlyConfigured(
+            "Не удалось разобрать DATABASE_URL. Скорее всего, в пароле есть спецсимволы "
+            "(? # @ / : + и другие) — их нужно закодировать, например ? → %3F, + → %2B, ) → %29. "
+            "Или задайте базу отдельными переменными DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD."
+        ) from error
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
