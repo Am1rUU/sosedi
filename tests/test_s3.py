@@ -124,3 +124,25 @@ def test_s3_enabled_by_env(monkeypatch):
     finally:
         monkeypatch.delenv("S3_BUCKET")
         importlib.reload(project_settings)
+
+
+def test_status_check_writes_to_bucket_and_cleans_up(s3):
+    from config.status import check_storage
+
+    check = check_storage()
+    assert check.ok, check.details
+    assert "S3 работает" in check.summary
+    assert _keys(s3) == []  # тестовый файл удалён
+
+
+def test_status_check_reports_s3_error(settings):
+    with mock_aws():  # бакета нет — запись должна провалиться и показать ошибку
+        settings.STORAGES = {
+            **settings.STORAGES,
+            "default": s3_storage("no-such-bucket", "test", "test", endpoint_url=None, region="us-east-1"),
+        }
+        from config.status import check_storage
+
+        check = check_storage()
+        assert not check.ok
+        assert any("Ошибка" in line for line in check.details)

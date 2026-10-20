@@ -1,0 +1,20 @@
+{% extends "admin/base_site.html" %}
+{# Страница «Состояние сайта»: база, хранилище фото, настройки. Только для администраторов. #}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Главная</a> › Состояние сайта</div>{% endblock %}
+{% block content %}
+<div style="max-width:760px">
+  <p style="font-size:14px;margin:0 0 16px">
+    {% if all_ok %}✅ Всё работает: данные и фото сохранятся после обновления сайта.
+    {% else %}⚠️ Есть проблемы — смотрите красные блоки ниже.{% endif %}
+    <a href="" style="margin-left:8px">Проверить ещё раз</a>
+  </p>
+  {% for check in checks %}
+  <div style="margin:0 0 14px;padding:14px 18px;border-radius:12px;border:1px solid {% if check.ok %}#D5E3DA{% else %}#F0C2B8{% endif %};background:{% if check.ok %}#EEF3EF{% else %}#FDF1EE{% endif %};color:#17201B">
+    <div style="font-size:15px;font-weight:600">{% if check.ok %}✅{% else %}❌{% endif %} {{ check.title }}: {{ check.summary }}</div>
+    <ul style="margin:8px 0 0;padding-left:18px;font-size:13px;line-height:1.6">
+      {% for line in check.details %}<li style="list-style:disc">{{ line }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

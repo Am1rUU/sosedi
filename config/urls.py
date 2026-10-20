@@ -7,6 +7,8 @@ from django.urls import include, path, re_path
 from django.views.generic import TemplateView
 from django.views.static import serve
 
+from config.status import status_view
+
 # Заголовки админки — это рабочее место модераторов
 admin.site.site_header = "Соседи — модерация"
 admin.site.site_title = "Соседи"
@@ -24,6 +26,8 @@ def robots_txt(request):
 
 urlpatterns = [
     path("", TemplateView.as_view(template_name="home.html"), name="home"),
+    # Страница «Состояние сайта» — до admin.site.urls, иначе адрес перехватит админка
+    path("admin/status/", status_view, name="site_status"),
     path("admin/", admin.site.urls),
     path("accounts/", include("apps.accounts.urls")),
     path("listings/", include("apps.listings.urls")),
