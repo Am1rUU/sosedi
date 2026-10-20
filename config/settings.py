@@ -208,10 +208,11 @@ if S3_BUCKET:
 
     STORAGES["default"] = s3_storage(
         bucket=S3_BUCKET,
-        access_key=os.environ.get("S3_ACCESS_KEY", ""),
-        secret_key=os.environ.get("S3_SECRET_KEY", ""),
-        endpoint_url=os.environ.get("S3_ENDPOINT_URL", TIMEWEB_S3_ENDPOINT),
-        region=os.environ.get("S3_REGION", TIMEWEB_S3_REGION),
+        # .strip(): при копировании ключей легко захватить пробел или перенос строки — S3 ответит 403
+        access_key=os.environ.get("S3_ACCESS_KEY", "").strip(),
+        secret_key=os.environ.get("S3_SECRET_KEY", "").strip(),
+        endpoint_url=os.environ.get("S3_ENDPOINT_URL", "").strip() or TIMEWEB_S3_ENDPOINT,
+        region=os.environ.get("S3_REGION", "").strip() or TIMEWEB_S3_REGION,
         addressing_style=os.environ.get("S3_ADDRESSING_STYLE", "path"),
     )
     # Фото отдаёт хранилище по подписанным ссылкам, приложению раздавать их не нужно

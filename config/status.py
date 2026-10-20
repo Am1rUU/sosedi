@@ -78,7 +78,17 @@ def check_storage() -> Check:
         default_storage.delete(saved)
         details.append("Тестовый файл записан, прочитан и удалён")
     except Exception as exc:
-        return Check("Хранилище фото", False, "Не удалось записать тестовый файл", [*details, f"Ошибка: {exc}"])
+        hints = [f"Ошибка: {exc}"]
+        text = str(exc)
+        if "403" in text or "Forbidden" in text or "AccessDenied" in text or "SignatureDoesNotMatch" in text:
+            hints.append(
+                "403 — хранилище не принимает ключи. Проверьте в панели бакета (раздел подключения): "
+                "S3_ACCESS_KEY и S3_SECRET_KEY скопированы целиком и не перепутаны местами, "
+                "а S3_BUCKET совпадает с точным именем бакета (у Timeweb оно может начинаться с префикса)."
+            )
+        elif "404" in text or "NoSuchBucket" in text:
+            hints.append("404 — бакета с таким именем нет. Проверьте точное имя бакета в S3_BUCKET.")
+        return Check("Хранилище фото", False, "Не удалось записать тестовый файл", [*details, *hints])
 
     if is_s3:
         return Check("Хранилище фото", True, "S3 работает — фото сохраняются", details)
