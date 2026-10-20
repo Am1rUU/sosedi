@@ -1,6 +1,7 @@
 """Объявления о комнатах и их фотографии."""
 
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
@@ -47,8 +48,21 @@ class Listing(models.Model):
     city = models.ForeignKey("geo.City", on_delete=models.PROTECT, related_name="listings", verbose_name="город")
     district = models.CharField("район", max_length=100, blank=True)
     metro = models.CharField("метро", max_length=100, blank=True)
-    # Точный адрес видят только после мэтча — защита владельца от лишних визитов
-    address = models.CharField("адрес (виден после мэтча)", max_length=255, blank=True)
+    # Точный адрес не храним вовсе: хозяин сам решает, кому и когда сообщить его в чате.
+    # В объявлении — только метро и время до него.
+    metro_walk_minutes = models.PositiveSmallIntegerField(
+        "минут пешком до метро",
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(120)],
+    )
+    metro_transport_minutes = models.PositiveSmallIntegerField(
+        "минут на транспорте до метро",
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(120)],
+        help_text="Автобус, трамвай, маршрутка — если пешком далеко",
+    )
 
     # --- Что ---
     title = models.CharField("заголовок", max_length=120)

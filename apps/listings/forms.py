@@ -44,7 +44,8 @@ class ListingForm(forms.ModelForm):
             "city",
             "district",
             "metro",
-            "address",
+            "metro_walk_minutes",
+            "metro_transport_minutes",
             "room_type",
             "rent",
             "deposit",
@@ -63,6 +64,8 @@ class ListingForm(forms.ModelForm):
             "description": forms.Textarea(
                 attrs={"rows": 6, "placeholder": "Опишите комнату, квартиру, соседей и правила дома"}
             ),
+            "metro_walk_minutes": forms.NumberInput(attrs={"placeholder": "Например, 7", "min": 1, "max": 120}),
+            "metro_transport_minutes": forms.NumberInput(attrs={"placeholder": "Например, 10", "min": 1, "max": 120}),
             "title": forms.TextInput(attrs={"placeholder": "Например: Светлая комната у м. Таганская"}),
         }
 
@@ -74,7 +77,7 @@ class ListingForm(forms.ModelForm):
         """Проверяем количество и размер фото, затем сжимаем и стираем метаданные.
 
         Удаление EXIF здесь особенно важно: в фото комнаты могут быть
-        GPS-координаты, а точный адрес мы показываем только после мэтча.
+        GPS-координаты, а точный адрес мы не показываем вовсе.
         """
         photos = self.cleaned_data.get("photos") or []
         existing = self.instance.photos.count() if self.instance.pk else 0

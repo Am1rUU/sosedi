@@ -6,7 +6,7 @@
 <div class="card-title">{{ listing.title }}</div>
 {% if listing.metro or listing.district %}
 <div class="metro">
-  {% if listing.metro %}<span class="metro-m" aria-hidden="true">М</span><span>{{ listing.metro }}{% if listing.district and listing.district != listing.metro %} · {{ listing.district }}{% endif %}</span>
+  {% if listing.metro %}<span class="metro-m" aria-hidden="true">М</span><span>{{ listing.metro }}{% if listing.metro_walk_minutes %} · {{ listing.metro_walk_minutes }} мин пешком{% endif %}{% if listing.metro_transport_minutes %} · {{ listing.metro_transport_minutes }} мин на транспорте{% endif %}{% if listing.district and listing.district != listing.metro %} · {{ listing.district }}{% endif %}</span>
   {% else %}{% include "includes/icon.html" with name="pin" %}<span>{{ listing.district }}</span>{% endif %}
 </div>
 {% endif %}

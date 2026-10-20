@@ -6,7 +6,7 @@
   <a href="{% url 'listings:my' %}" class="icon-btn" aria-label="Назад к объявлениям">{% include "includes/icon.html" with name="back" %}</a>
 </div>
 <h1 class="page-title">{% if is_new %}Сдать комнату{% else %}Объявление{% endif %}</h1>
-<p class="page-lead">Точный адрес увидят только те, с кем будет мэтч.</p>
+<p class="page-lead">В объявлении видно только метро и сколько до него идти. Адрес вы сами сообщите в чате тем, кому решите показать комнату.</p>
 
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
@@ -17,7 +17,12 @@
     {% include "includes/_field.html" with field=form.city %}
     {% include "includes/_field.html" with field=form.metro %}
     {% include "includes/_field.html" with field=form.district %}
-    {% include "includes/_field.html" with field=form.address %}
+    {% include "includes/_field.html" with field=form.metro_walk_minutes %}
+    {% include "includes/_field.html" with field=form.metro_transport_minutes %}
+    <div class="safety-note">
+      {% include "includes/icon.html" with name="shield" %}
+      <div><b>Не пишите точный адрес</b> ни в объявлении, ни в описании, ни на фото (номер дома, табличка с адресом в кадре). Адрес сообщите в чате тому, кому решите показать комнату.</div>
+    </div>
   </fieldset>
 
   <fieldset class="form-card">

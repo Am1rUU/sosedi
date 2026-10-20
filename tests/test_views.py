@@ -200,13 +200,51 @@ def test_cannot_edit_or_feed_foreign_listing(client, make_user, listing):
     assert client.get(reverse("matching:owner_feed", args=[listing.pk])).status_code == 404
 
 
-def test_address_visible_only_after_match(client, seeker, make_listing):
-    listing = make_listing(address="ул. Секретная, 1")
+def test_listing_has_no_address_only_metro_minutes(client, seeker, make_listing):
+    from apps.listings.models import Listing
+
+    assert "address" not in {f.name for f in Listing._meta.get_fields()}
+    listing = make_listing(metro="Таганская", metro_walk_minutes=7, metro_transport_minutes=3)
     client.force_login(seeker)
-    url = reverse("listings:detail", args=[listing.pk])
-    assert "ул. Секретная" not in client.get(url).content.decode()
-    _make_match(seeker, listing)
-    assert "ул. Секретная" in client.get(url).content.decode()
+    html = client.get(reverse("listings:detail", args=[listing.pk])).content.decode()
+    assert "Таганская · 7 мин пешком · 3 мин на транспорте" in html
+    assert "сообщит в чате" in html
+
+
+def test_chat_shows_address_safety_note(client, seeker, make_listing):
+    listing = make_listing(metro="Таганская", metro_walk_minutes=7)
+    match = _make_match(seeker, listing)
+    client.force_login(seeker)
+    html = client.get(reverse("messaging:chat", args=[match.pk])).content.decode()
+    assert "Хозяин сообщит адрес" in html
+    client.force_login(listing.owner)
+    html = client.get(reverse("messaging:chat", args=[match.pk])).content.decode()
+    assert "Адрес сообщайте, только когда" in html
+    assert "Давайте договоримся о просмотре. Адрес:" in html
+
+
+def test_metro_minutes_are_validated(client, make_user, city):
+    owner = make_user()
+    client.force_login(owner)
+    response = client.post(
+        reverse("listings:create"),
+        {
+            "title": "Комната",
+            "city": city.pk,
+            "metro": "Таганская",
+            "metro_walk_minutes": 500,
+            "room_type": "room",
+            "rent": 30000,
+            "deposit": 0,
+            "available_from": "2026-11-01",
+            "min_term_months": 1,
+            "flatmates_count": 1,
+            "preferred_gender": "any",
+            "description": "Хорошая комната",
+        },
+    )
+    assert response.status_code == 200
+    assert "metro_walk_minutes" in response.context["form"].errors
 
 
 # --- Жалобы ------------------------------------------------------------------

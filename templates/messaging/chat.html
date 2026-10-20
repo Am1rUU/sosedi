@@ -41,10 +41,15 @@
     <span class="room-pin-photo">{% with photo=match.listing.main_photo %}{% if photo %}<img src="{{ photo.image.url }}" alt="">{% endif %}{% endwith %}</span>
     <span class="grow">
       <span class="room-pin-title truncate" style="display:block">{{ match.listing.rent|intcomma }} ₽ · {{ match.listing.title }}</span>
-      <span class="room-pin-addr">{% include "includes/icon.html" with name="pin" %}<span class="truncate">{% if match.listing.address %}Адрес: {{ match.listing.address }}{% else %}{% if match.listing.metro %}м. {{ match.listing.metro }}{% else %}{{ match.listing.city }}{% endif %}{% endif %}</span></span>
+      <span class="room-pin-addr">{% include "includes/icon.html" with name="pin" %}<span class="truncate">{% if match.listing.metro %}м. {{ match.listing.metro }}{% if match.listing.metro_walk_minutes %}, {{ match.listing.metro_walk_minutes }} мин пешком{% endif %}{% else %}{{ match.listing.city }}{% endif %}</span></span>
     </span>
     <span class="muted" aria-hidden="true" style="width:18px;height:18px">{% include "includes/icon.html" with name="chevron" %}</span>
   </a>
+
+  <div class="safety-note chat-safety">
+    {% include "includes/icon.html" with name="shield" %}
+    <div>{% if i_am_owner %}Адрес сообщайте, только когда договоритесь о просмотре и будете уверены в человеке.{% else %}Хозяин сообщит адрес, когда договоритесь о просмотре.{% endif %}</div>
+  </div>
 
   {# Поллинг: каждые 5 секунд подгружаем новые сообщения. Позже можно заменить на WebSocket. #}
   <div id="chat-box" class="chat-box" aria-live="polite"

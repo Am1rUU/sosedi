@@ -146,6 +146,8 @@ class Command(BaseCommand):
                     "city": moscow,
                     "district": district,
                     "metro": metro,
+                    "metro_walk_minutes": random.choice([3, 5, 7, 10, 12, 15]),
+                    "metro_transport_minutes": random.choice([None, None, 5, 8]),
                     "rent": rent,
                     "deposit": rent,
                     "room_type": room_type,

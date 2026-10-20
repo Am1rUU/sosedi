@@ -3,7 +3,6 @@
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -100,7 +99,7 @@ def listing_detail(request, pk: int):
     """Карточка объявления.
 
     Владелец видит своё объявление всегда. Остальные — только активные.
-    Точный адрес показываем только участникам мэтча.
+    Точного адреса в объявлении нет: хозяин сам сообщает его в чате.
     """
     listing = get_object_or_404(Listing.objects.select_related("city", "owner__profile"), pk=pk)
     is_owner = listing.owner_id == request.user.pk
@@ -109,11 +108,4 @@ def listing_detail(request, pk: int):
         if not Match.objects.filter(listing=listing, seeker=request.user).exists():
             raise Http404
 
-    show_address = (
-        is_owner or Match.objects.filter(Q(listing=listing) & Q(seeker=request.user), is_closed=False).exists()
-    )
-    return render(
-        request,
-        "listings/listing_detail.html",
-        {"listing": listing, "is_owner": is_owner, "show_address": show_address},
-    )
+    return render(request, "listings/listing_detail.html", {"listing": listing, "is_owner": is_owner})

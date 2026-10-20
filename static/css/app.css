@@ -383,3 +383,8 @@ input[type=file]::file-selector-button { margin-right: 10px; min-height: 40px; p
 
 /* HTMX: пока грузится следующая карточка, текущая чуть тускнеет */
 .htmx-request .swipe-card:not(.fly-left):not(.fly-right) { opacity: .6; }
+
+/* Подсказка о безопасности: адрес — только в чате, деньги — только после встречи */
+.safety-note { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: var(--mint); color: var(--mint-ink); font-size: 14px; line-height: 1.45; }
+.safety-note .icon, .safety-note svg { width: 18px; height: 18px; flex: none; margin-top: 1px; }
+.chat-safety { margin: 10px 12px 0; font-size: 13px; padding: 10px 12px; }
