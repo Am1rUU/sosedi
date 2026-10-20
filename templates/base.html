@@ -36,6 +36,7 @@
 
   {% block main %}
   <main class="page">
+    {% if found_prompt %}{% include "matching/_found_prompt.html" with prompt=found_prompt %}{% endif %}
     {% for message in messages %}
       <div class="flash {% if message.tags == 'error' %}error{% endif %}" role="status">{{ message }}</div>
     {% endfor %}

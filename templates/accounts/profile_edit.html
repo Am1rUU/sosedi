@@ -22,6 +22,7 @@
   <fieldset class="form-card">
     <legend>Что ищу</legend>
     {% include "includes/_field.html" with field=form.is_seeking %}
+    {% if form.instance.is_seeking %}<a class="small" href="{% url 'matching:found' %}">Я уже нашёл(ла) жильё</a>{% endif %}
     {% include "includes/_field.html" with field=form.city %}
     {% include "includes/_field.html" with field=form.preferred_districts %}
     {% include "includes/_field.html" with field=form.budget_max %}

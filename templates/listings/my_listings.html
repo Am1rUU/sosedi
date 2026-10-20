@@ -37,7 +37,7 @@
             {% csrf_token %}
             {% if listing.status == "active" %}
               <button class="btn btn-sm btn-ghost" name="status" value="paused">Пауза</button>
-              <button class="btn btn-sm btn-ghost" name="status" value="rented">Сдано</button>
+              <a class="btn btn-sm btn-ghost" href="{% url 'matching:found' %}?listing={{ listing.pk }}">Сдано</a>
             {% else %}
               <button class="btn btn-sm" name="status" value="active">Возобновить</button>
             {% endif %}

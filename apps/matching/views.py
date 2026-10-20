@@ -20,7 +20,7 @@ from apps.listings.models import Listing
 from apps.messaging.views import QUICK_PHRASES_FOR_OWNER, QUICK_PHRASES_FOR_SEEKER
 from apps.moderation.services import is_blocked_between
 
-from . import services
+from . import outcomes, services
 from .models import Match, Swipe
 
 
@@ -231,3 +231,64 @@ def _error_text(error: Exception) -> str:
     if isinstance(error, ValidationError):
         return " ".join(error.messages)
     return str(error) or "Действие недоступно"
+
+
+# --- «Нашли соседа / комнату?» ---------------------------------------------
+
+
+@login_required
+def found(request):
+    """Ответ на вопрос «Нашли?».
+
+    С параметром ?listing=<id> — хозяин отмечает, что сдал комнату по объявлению.
+    Без параметра — ищущий отмечает, что нашёл жильё.
+    Можно выбрать, с кем договорились (из мэтчей), или «в другом месте».
+    """
+    listing = None
+    listing_id = request.GET.get("listing") or request.POST.get("listing")
+    if listing_id:
+        listing = get_object_or_404(Listing, pk=listing_id, owner=request.user)
+    options = list(outcomes.answer_options(request.user, listing))
+
+    if request.method == "POST":
+        choice = request.POST.get("choice", "")
+        if choice == "not_yet":
+            outcomes.snooze(request.user)
+            messages.info(request, "Хорошо, удачи в поиске! Спросим позже.")
+            return redirect("matching:matches")
+        match = None
+        if choice != "elsewhere":
+            match = next((m for m in options if str(m.pk) == choice), None)
+            if match is None:
+                messages.error(request, "Выберите вариант из списка")
+                return redirect(request.get_full_path())
+        outcomes.record_found(request.user, listing, match)
+        if listing:
+            messages.success(request, "Поздравляем! Объявление больше не показывается в ленте. Чаты остаются.")
+            return redirect("listings:my")
+        messages.success(
+            request,
+            "Поздравляем с новым жильём! Хозяева больше не видят вашу анкету. "
+            "Если снова начнёте искать — просто лайкните комнату в ленте.",
+        )
+        return redirect("matching:matches")
+
+    return render(request, "matching/found.html", {"listing": listing, "options": options})
+
+
+@login_required
+@require_POST
+def found_snooze(request):
+    """Кнопка «Пока нет» в баннере."""
+    outcomes.snooze(request.user)
+    return redirect(request.POST.get("next") or "matching:feed")
+
+
+@login_required
+@require_POST
+def listing_confirm(request, listing_id: int):
+    """Кнопка «Да, ещё свободна» в баннере."""
+    listing = get_object_or_404(Listing, pk=listing_id, owner=request.user)
+    outcomes.confirm_listing_available(request.user, listing)
+    messages.success(request, "Спасибо! Объявление продолжает показываться.")
+    return redirect(request.POST.get("next") or "listings:my")

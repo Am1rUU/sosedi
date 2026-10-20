@@ -22,4 +22,11 @@ def site_flags(request):
         unread = Message.objects.filter(match__in=open_matches, read_at__isnull=True).exclude(sender=user).count()
         not_started = open_matches.filter(messages__isnull=True).count()
         context["nav_badge"] = unread + not_started
+
+        # Вопрос «Нашли соседа/комнату?» — только на страницах сайта, не в админке
+        on_answer_page = getattr(request.resolver_match, "url_name", "") == "found"
+        if not request.path.startswith("/admin/") and request.method == "GET" and not on_answer_page:
+            from apps.matching.outcomes import pending_prompt
+
+            context["found_prompt"] = pending_prompt(user)
     return context

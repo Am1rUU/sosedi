@@ -60,6 +60,9 @@ class User(AbstractUser):
 
     username = None  # логин не используем
     email = models.EmailField("email", unique=True)
+    # Когда человек последний раз заходил на сайт (обновляется не чаще раза в 10 минут).
+    # По нему лента поднимает активных и прячет тех, кто пропал надолго.
+    last_seen_at = models.DateTimeField("последний визит", null=True, blank=True, db_index=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS: list[str] = []
@@ -127,6 +130,10 @@ class Profile(models.Model):
     # --- Модерация ---
     # Скрытая анкета не показывается в лентах (например, после жалоб)
     is_hidden = models.BooleanField("скрыта модератором", default=False)
+
+    # --- Вопрос «Нашли?» ---
+    # До этого момента не спрашиваем «Нашли соседа/комнату?» (человек ответил «Пока нет»)
+    found_prompt_snoozed_until = models.DateTimeField("не спрашивать «Нашли?» до", null=True, blank=True)
 
     created_at = models.DateTimeField("создана", auto_now_add=True)
     updated_at = models.DateTimeField("обновлена", auto_now=True)

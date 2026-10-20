@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{% if listing %}Комната сдана{% else %}Жильё найдено{% endif %} — Соседи{% endblock %}
+{% block content %}
+<h1 class="page-title" style="margin-top:8px">{% if listing %}С кем договорились?{% else %}Где нашли жильё?{% endif %}</h1>
+<p class="page-lead">
+  {% if listing %}Объявление «{{ listing.title }}» перестанет показываться в ленте. Чаты останутся — можно спокойно договориться о деталях.
+  {% else %}Хозяева перестанут видеть вашу анкету. Чаты останутся.{% endif %}
+</p>
+
+<form method="post" class="form-card">
+  {% csrf_token %}
+  {% if listing %}<input type="hidden" name="listing" value="{{ listing.pk }}">{% endif %}
+  <div class="choice-list">
+    {% for match in options %}
+      {% if listing %}{% with person=match.seeker %}
+      <label class="choice-row">
+        <input type="radio" name="choice" value="{{ match.pk }}" {% if forloop.first %}checked{% endif %}>
+        <span class="avatar">{% if person.profile.photo %}<img src="{{ person.profile.photo.url }}" alt="">{% else %}{{ person.profile.display_name|first|default:"?" }}{% endif %}</span>
+        <span>{{ person.profile.display_name|default:"Без имени" }}</span>
+      </label>
+      {% endwith %}{% else %}
+      <label class="choice-row">
+        <input type="radio" name="choice" value="{{ match.pk }}" {% if forloop.first %}checked{% endif %}>
+        <span class="avatar">{{ match.listing.owner.profile.display_name|first|default:"?" }}</span>
+        <span>{{ match.listing.title|truncatechars:42 }}<br><span class="muted small">{{ match.listing.owner.profile.display_name|default:"Хозяин" }}{% if match.listing.metro %} · м. {{ match.listing.metro }}{% endif %}</span></span>
+      </label>
+      {% endif %}
+    {% endfor %}
+    <label class="choice-row">
+      <input type="radio" name="choice" value="elsewhere" {% if not options %}checked{% endif %}>
+      <span class="avatar">…</span>
+      <span>{% if listing %}С кем-то не из «Соседей»{% else %}Нашёл(ла) в другом месте{% endif %}</span>
+    </label>
+  </div>
+  <div class="btn-row" style="margin-top:16px">
+    <button class="btn btn-primary" type="submit">{% if listing %}Комната сдана{% else %}Жильё найдено{% endif %}</button>
+    <button class="btn btn-ghost" type="submit" name="choice" value="not_yet">Пока нет</button>
+  </div>
+</form>
+{% endblock %}

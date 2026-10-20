@@ -15,7 +15,8 @@ from datetime import timedelta
 from django.conf import settings
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
-from django.db.models import Case, Exists, IntegerField, OuterRef, Q, QuerySet, Value, When
+from django.db.models import Case, Exists, F, IntegerField, OuterRef, Q, QuerySet, Value, When
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from apps.accounts.models import Profile, User
@@ -134,6 +135,29 @@ def user_matches(user: User) -> QuerySet[Match]:
 # --- Лента ------------------------------------------------------------------
 
 
+def activity_bucket(user_prefix: str = "") -> tuple[Case, Coalesce]:
+    """Насколько недавно человек заходил: 0 — недавно, 1 — пару недель назад, 2 — давно.
+
+    Если человек ещё ни разу не заходил после появления учёта визитов,
+    считаем от даты регистрации.
+    """
+    now = timezone.now()
+    seen = Coalesce(F(f"{user_prefix}last_seen_at"), F(f"{user_prefix}date_joined"))
+    return Case(
+        When(_seen__gte=now - timedelta(days=settings.ACTIVITY_FRESH_DAYS), then=Value(0)),
+        When(_seen__gte=now - timedelta(days=settings.ACTIVITY_STALE_DAYS), then=Value(1)),
+        default=Value(2),
+        output_field=IntegerField(),
+    ), seen
+
+
+def _with_activity(qs: QuerySet, user_prefix: str = "") -> QuerySet:
+    """Добавляет к выборке признак активности и убирает тех, кто пропал надолго."""
+    bucket, seen = activity_bucket(user_prefix)
+    hide_before = timezone.now() - timedelta(days=settings.ACTIVITY_HIDE_DAYS)
+    return qs.annotate(_seen=seen).filter(_seen__gte=hide_before).annotate(activity=bucket)
+
+
 def _resurface_cutoff():
     """Момент, раньше которого пропущенные карточки снова можно показывать."""
     return timezone.now() - timedelta(days=settings.FEED_RESURFACE_PASSED_AFTER_DAYS)
@@ -185,15 +209,18 @@ def seeker_feed(user: User, limit: int | None = None) -> list[Listing]:
     )
     qs = qs.annotate(liked_me=Exists(owner_liked_me))
 
+    # Объявления владельцев, которые давно не заходили, опускаем, а пропавших больше 30 дней — скрываем
+    qs = _with_activity(qs, "owner__")
+
     qs = qs.select_related("city", "owner__profile").prefetch_related("photos")
-    qs = qs.order_by("-liked_me", "-created_at")
+    qs = qs.order_by("-liked_me", "activity", "-created_at")
 
     # Берём с запасом и досортировываем по совместимости в Python — на MVP этого достаточно
     candidates = list(qs[: limit * 3])
     for listing in candidates:
         # Причины совместимости показываются в карточке строкой «Подходит вам: …»
         listing.fit_reasons = fit_reasons(profile, listing)
-    candidates.sort(key=lambda listing: (not listing.liked_me, -_listing_score(listing.fit_reasons)))
+    candidates.sort(key=lambda listing: (not listing.liked_me, listing.activity, -_listing_score(listing.fit_reasons)))
     return candidates[:limit]
 
 
@@ -278,7 +305,11 @@ def owner_feed(user: User, listing: Listing, limit: int | None = None) -> list[U
             output_field=IntegerField(),
         )
     )
-    qs = qs.select_related("profile", "profile__city").order_by("-liked_me", "-date_fit", "-profile__updated_at")
+    # Активные — выше, пропавшие больше 30 дней — не показываются
+    qs = _with_activity(qs)
+    qs = qs.select_related("profile", "profile__city").order_by(
+        "-liked_me", "activity", "-date_fit", "-profile__updated_at"
+    )
     return list(qs[:limit])
 
 

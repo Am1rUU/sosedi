@@ -51,6 +51,48 @@ class Swipe(models.Model):
         return f"{self.get_side_display()}: {self.get_decision_display()} ({self.listing_id}/{self.seeker_id})"
 
 
+class Outcome(models.Model):
+    """Итог поиска: человек нашёл комнату или сдал её.
+
+    Главная метрика MVP — сколько пар реально договорились через сервис.
+    Если договорились через «Соседей», заполнен match; если в другом месте — нет.
+    """
+
+    class Role(models.TextChoices):
+        SEEKER = "seeker", "Нашёл комнату"
+        OWNER = "owner", "Сдал комнату"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="outcomes", verbose_name="пользователь"
+    )
+    role = models.CharField("что произошло", max_length=6, choices=Role.choices)
+    listing = models.ForeignKey(
+        "listings.Listing",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="outcomes",
+        verbose_name="объявление",
+    )
+    match = models.ForeignKey(
+        "Match", on_delete=models.SET_NULL, null=True, blank=True, related_name="outcomes", verbose_name="с кем (мэтч)"
+    )
+    created_at = models.DateTimeField("когда", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "итог поиска"
+        verbose_name_plural = "итоги поиска"
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        where = "через «Соседей»" if self.match_id else "в другом месте"
+        return f"{self.user}: {self.get_role_display().lower()} {where}"
+
+    @property
+    def via_service(self) -> bool:
+        return self.match_id is not None
+
+
 class Match(models.Model):
     """Взаимный интерес: ищущий и владелец лайкнули друг друга по конкретному объявлению."""
 

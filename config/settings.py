@@ -71,6 +71,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Запоминает время последнего визита (для ленты и вопроса «Нашли?»)
+    "config.middleware.LastSeenMiddleware",
     # Запрет индексации на время закрытого теста (управляется SITE_NOINDEX)
     "config.middleware.NoIndexMiddleware",
 ]
@@ -239,6 +241,20 @@ FEED_RESURFACE_PASSED_AFTER_DAYS = int(os.environ.get("FEED_RESURFACE_PASSED_AFT
 
 # Сколько карточек отдавать в ленту за один запрос
 FEED_BATCH_SIZE = 20
+
+# --- Активность ---
+# Кто заходил за последние N дней, показывается в лентах первым
+ACTIVITY_FRESH_DAYS = int(os.environ.get("ACTIVITY_FRESH_DAYS", "3"))
+# Кто не заходил дольше — опускается ниже
+ACTIVITY_STALE_DAYS = int(os.environ.get("ACTIVITY_STALE_DAYS", "14"))
+# Кто не заходил дольше — не показывается в лентах, пока не вернётся
+ACTIVITY_HIDE_DAYS = int(os.environ.get("ACTIVITY_HIDE_DAYS", "30"))
+# Через сколько дней после мэтча с перепиской спрашивать «Нашли соседа/комнату?»
+FOUND_PROMPT_AFTER_DAYS = int(os.environ.get("FOUND_PROMPT_AFTER_DAYS", "3"))
+# На сколько дней откладывать вопрос после ответа «Пока нет»
+FOUND_PROMPT_SNOOZE_DAYS = int(os.environ.get("FOUND_PROMPT_SNOOZE_DAYS", "7"))
+# Через сколько дней без изменений спрашивать владельца «Комната ещё свободна?»
+LISTING_CONFIRM_AFTER_DAYS = int(os.environ.get("LISTING_CONFIRM_AFTER_DAYS", "30"))
 
 # Сколько жалоб на пользователя автоматически скрывают его до проверки
 AUTO_HIDE_AFTER_REPORTS = int(os.environ.get("AUTO_HIDE_AFTER_REPORTS", "3"))

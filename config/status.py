@@ -104,8 +104,27 @@ def check_settings() -> Check:
     return Check("Настройки", not problems, summary, details)
 
 
+def check_activity() -> Check:
+    """Активность и итоги поиска — без проверки на ошибки, просто цифры."""
+    try:
+        from apps.matching.outcomes import stats
+
+        s = stats()
+    except Exception as exc:  # база недоступна — об этом уже скажет проверка базы
+        return Check("Активность", False, "Не удалось посчитать", [f"Ошибка: {exc}"])
+    return Check(
+        "Активность",
+        True,
+        f"Нашли соседа или комнату: {s['outcomes_total']} (через «Соседей»: {s['outcomes_via_service']})",
+        [
+            f"Заходили за последние {settings.ACTIVITY_FRESH_DAYS} дн.: {s['active_recent']}",
+            f"Не заходили дольше {settings.ACTIVITY_HIDE_DAYS} дн. (скрыты из лент): {s['hidden_inactive']}",
+        ],
+    )
+
+
 def run_all_checks() -> list[Check]:
-    return [check_database(), check_storage(), check_settings()]
+    return [check_database(), check_storage(), check_settings(), check_activity()]
 
 
 @staff_member_required

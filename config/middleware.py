@@ -45,3 +45,50 @@ class NoIndexMiddleware:
         if settings.SITE_NOINDEX:
             response["X-Robots-Tag"] = "noindex, nofollow"
         return response
+
+
+class LastSeenMiddleware:
+    """Запоминает, когда человек последний раз заходил на сайт.
+
+    Чтобы не писать в базу на каждый клик, обновляем не чаще раза в 10 минут:
+    время последней записи держим в сессии. Если человек не заходил так долго,
+    что его анкета и объявления были скрыты из лент, — сообщаем, что они снова видны.
+    """
+
+    UPDATE_EVERY_SECONDS = 600
+    SESSION_KEY = "last_seen_ts"
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        user = getattr(request, "user", None)
+        if user is not None and user.is_authenticated:
+            self._touch(request, user)
+        return self.get_response(request)
+
+    def _touch(self, request, user):
+        import time
+        from datetime import timedelta
+
+        from django.contrib import messages
+        from django.contrib.auth import get_user_model
+        from django.utils import timezone
+
+        now_ts = time.time()
+        last_ts = request.session.get(self.SESSION_KEY)
+        if last_ts and now_ts - last_ts < self.UPDATE_EVERY_SECONDS:
+            return
+
+        now = timezone.now()
+        previous = user.last_seen_at
+        get_user_model().objects.filter(pk=user.pk).update(last_seen_at=now)
+        user.last_seen_at = now
+        request.session[self.SESSION_KEY] = now_ts
+
+        if previous and now - previous > timedelta(days=settings.ACTIVITY_HIDE_DAYS):
+            messages.info(
+                request,
+                "С возвращением! Пока вас не было, мы не показывали вашу анкету и объявления в ленте. "
+                "Теперь их снова видят.",
+            )

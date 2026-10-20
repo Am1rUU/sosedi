@@ -1,0 +1,22 @@
+{# Баннер с вопросом «Нашли?» / «Комната ещё свободна?» вверху страницы #}
+<div class="prompt-card" role="region" aria-label="Вопрос">
+  {% if prompt.kind == "owner_found" %}
+    <div class="prompt-text"><b>Нашли соседа?</b> Вы переписывались по объявлению «{{ prompt.listing.title|truncatechars:40 }}».</div>
+    <div class="prompt-actions">
+      <a class="btn btn-primary btn-sm" href="{% url 'matching:found' %}?listing={{ prompt.listing.pk }}">Да, сдал(а)</a>
+      <form method="post" action="{% url 'matching:found_snooze' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-sm btn-ghost">Пока нет</button></form>
+    </div>
+  {% elif prompt.kind == "seeker_found" %}
+    <div class="prompt-text"><b>Нашли комнату?</b> Если да — скроем вашу анкету от хозяев, чтобы вам больше не писали.</div>
+    <div class="prompt-actions">
+      <a class="btn btn-primary btn-sm" href="{% url 'matching:found' %}">Да, нашёл(ла)</a>
+      <form method="post" action="{% url 'matching:found_snooze' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-sm btn-ghost">Пока ищу</button></form>
+    </div>
+  {% elif prompt.kind == "listing_confirm" %}
+    <div class="prompt-text"><b>Комната ещё свободна?</b> Объявление «{{ prompt.listing.title|truncatechars:40 }}» давно не обновлялось.</div>
+    <div class="prompt-actions">
+      <form method="post" action="{% url 'matching:listing_confirm' prompt.listing.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-primary btn-sm">Да, свободна</button></form>
+      <a class="btn btn-sm btn-ghost" href="{% url 'matching:found' %}?listing={{ prompt.listing.pk }}">Уже сдал(а)</a>
+    </div>
+  {% endif %}
+</div>
