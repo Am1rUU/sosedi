@@ -88,12 +88,29 @@ def check_storage() -> Check:
             )
         elif "404" in text or "NoSuchBucket" in text:
             hints.append("404 — бакета с таким именем нет. Проверьте точное имя бакета в S3_BUCKET.")
+        if is_s3:
+            hints.append(_visible_buckets_hint())
         return Check("Хранилище фото", False, "Не удалось записать тестовый файл", [*details, *hints])
 
     if is_s3:
         return Check("Хранилище фото", True, "S3 работает — фото сохраняются", details)
     details.append("Фото лежат внутри контейнера и пропадут при обновлении сайта, если не подключён S3.")
     return Check("Хранилище фото", False, "Локальная папка — фото пропадут при обновлении сайта", details)
+
+
+def _visible_buckets_hint() -> str:
+    """Какие бакеты видны с этими ключами — сразу понятно, ключи неверны или имя бакета."""
+    try:
+        client = default_storage.connection.meta.client
+        names = [b["Name"] for b in client.list_buckets().get("Buckets", [])]
+    except Exception as exc:
+        return f"Список бакетов по этим ключам получить не удалось — скорее всего, неверны сами ключи ({exc})"
+    if not names:
+        return "Ключи принимаются, но бакетов по ним не видно."
+    current = settings.STORAGES["default"].get("OPTIONS", {}).get("bucket_name")
+    if current in names:
+        return f"Ключи видят бакет {current} — значит, у ключей нет прав на запись в него."
+    return "Ключи работают и видят бакеты: " + ", ".join(names) + ". Впишите нужное имя в S3_BUCKET."
 
 
 def check_settings() -> Check:

@@ -146,3 +146,17 @@ def test_status_check_reports_s3_error(settings):
         check = check_storage()
         assert not check.ok
         assert any("Ошибка" in line for line in check.details)
+
+
+def test_status_check_lists_visible_buckets_on_wrong_name(settings):
+    with mock_aws():
+        boto3.client("s3", region_name="us-east-1").create_bucket(Bucket="3b24945b-real-name")
+        settings.STORAGES = {
+            **settings.STORAGES,
+            "default": s3_storage("display-name", "test", "test", endpoint_url=None, region="us-east-1"),
+        }
+        from config.status import check_storage
+
+        check = check_storage()
+        assert not check.ok
+        assert any("3b24945b-real-name" in line for line in check.details)
