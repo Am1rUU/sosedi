@@ -2,7 +2,7 @@
 # Один и тот же образ используется на staging и в проде — отличаются только переменные окружения.
 #
 # Порядок шагов важен для скорости сборки: сначала то, что меняется редко
-# (системные утилиты, пользователь, библиотеки), в конце — код, который меняется часто.
+# (пользователь, библиотеки), в конце — код, который меняется часто.
 
 FROM python:3.12-slim
 
@@ -10,25 +10,22 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    UV_NO_CACHE=1 \
-    UV_COMPILE_BYTECODE=0
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /app
 
-# curl и wget нужны хостингу (Timeweb), чтобы проверять /healthz/ изнутри контейнера.
+# Хостинг (Timeweb) проверяет /healthz/ изнутри контейнера командой curl или wget.
+# Настоящие curl и wget через apt ставились ~9 минут, поэтому вместо них —
+# маленький скрипт на Python (docker/http_probe.py), который делает то же самое.
 # Здесь же создаём пользователя без прав root, от которого работает gunicorn.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl wget \
-    && rm -rf /var/lib/apt/lists/* \
+COPY docker/http_probe.py /usr/local/bin/curl
+RUN chmod 755 /usr/local/bin/curl \
+    && ln -s /usr/local/bin/curl /usr/local/bin/wget \
     && useradd --create-home appuser
 
-# Библиотеки ставим через uv — он делает то же, что pip, но в разы быстрее.
-# Этот шаг кэшируется, пока не изменится requirements.txt.
+# Библиотеки. Этот шаг кэшируется, пока не изменится requirements.txt.
 COPY requirements.txt .
-RUN pip install uv==0.12.24 \
-    && uv pip install --system -r requirements.txt \
-    && pip uninstall -y uv
+RUN pip install -r requirements.txt
 
 # Затем копируем код
 COPY . .
