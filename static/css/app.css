@@ -415,3 +415,13 @@ input[type=file]::file-selector-button { margin-right: 10px; min-height: 40px; p
 .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .field-pair .field { min-width: 0; }
 .chips-link { text-decoration: none; color: inherit; }
+
+/* Удаление своих сообщений: меню «⋯» слева от пузыря */
+.msg-row { display: flex; align-items: center; gap: 4px; align-self: flex-end; max-width: 88%; }
+.msg-row .msg { max-width: none; }
+.msg-menu { position: relative; flex: none; }
+.msg-menu summary { list-style: none; cursor: pointer; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 18px; line-height: 1; }
+.msg-menu summary::-webkit-details-marker { display: none; }
+.msg-menu[open] summary { background: var(--mint); }
+.msg-menu-item { position: absolute; right: 32px; top: 50%; transform: translateY(-50%); white-space: nowrap; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--danger); font: inherit; font-size: 14px; cursor: pointer; box-shadow: 0 4px 14px rgb(0 0 0 / .08); }
+.msg-deleted { font-style: italic; opacity: .6; background: transparent !important; color: var(--muted) !important; border: 1px dashed var(--border) !important; }

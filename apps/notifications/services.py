@@ -124,7 +124,7 @@ def _send_message(message_id: int) -> None:
     )
     match = message.match
     recipient = match.other_side(message.sender)
-    if message.read_at:  # уже прочитал, пока мы собирались отправить
+    if message.read_at or message.deleted_at:  # уже прочитано или удалено, пока мы собирались отправить
         return
 
     # Не чаще раза в N минут на один чат: первое сообщение — уведомляем, следующие — молчим

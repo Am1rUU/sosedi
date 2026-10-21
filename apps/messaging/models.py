@@ -18,6 +18,9 @@ class Message(models.Model):
     text = models.TextField("текст", max_length=2000)
     created_at = models.DateTimeField("отправлено", auto_now_add=True, db_index=True)
     read_at = models.DateTimeField("прочитано", null=True, blank=True)
+    # Удалённое сообщение собеседники больше не видят (вместо него — «Сообщение удалено»).
+    # Текст остаётся в базе только для разбора жалоб модератором (например, на мошенников).
+    deleted_at = models.DateTimeField("удалено", null=True, blank=True)
 
     class Meta:
         verbose_name = "сообщение"
@@ -26,3 +29,7 @@ class Message(models.Model):
 
     def __str__(self) -> str:
         return f"{self.sender}: {self.text[:40]}"
+
+    @property
+    def is_deleted(self) -> bool:
+        return self.deleted_at is not None

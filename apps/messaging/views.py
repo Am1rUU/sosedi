@@ -126,3 +126,21 @@ def close_match(request, match_id: int):
     match.save(update_fields=["is_closed"])
     flash.info(request, "Мэтч закрыт.")
     return redirect("matching:matches")
+
+
+@login_required
+@require_POST
+def delete_message(request, match_id: int, message_id: int):
+    """Удалить своё сообщение — у обоих собеседников."""
+    match = _get_match_for_user(request, match_id)
+    message = get_object_or_404(Message, pk=message_id, match=match, sender=request.user)
+    if not message.is_deleted:
+        message.deleted_at = timezone.now()
+        message.save(update_fields=["deleted_at"])
+    if request.headers.get("HX-Request") == "true":
+        return render(
+            request,
+            "messaging/_messages.html",
+            {"match": match, "chat_messages": match.messages.select_related("sender")},
+        )
+    return redirect("messaging:chat", match_id=match.pk)

@@ -20,7 +20,11 @@ def site_flags(request):
         from apps.messaging.models import Message
 
         open_matches = Match.objects.filter(Q(seeker=user) | Q(listing__owner=user), is_closed=False)
-        unread = Message.objects.filter(match__in=open_matches, read_at__isnull=True).exclude(sender=user).count()
+        unread = (
+            Message.objects.filter(match__in=open_matches, read_at__isnull=True, deleted_at__isnull=True)
+            .exclude(sender=user)
+            .count()
+        )
         not_started = open_matches.filter(messages__isnull=True).count()
         from apps.matching.services import incoming_likes_for_seeker
 

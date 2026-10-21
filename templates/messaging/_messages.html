@@ -2,6 +2,19 @@
 <span class="chat-day">Мэтч · {{ match.created_at|date:"j E" }}</span>
 <div class="notice">{% include "includes/icon.html" with name="shield" %}Не переводите предоплату до просмотра и подписания договора</div>
 {% for msg in chat_messages %}
-  <div class="msg {% if msg.sender_id == user.pk %}mine{% endif %}">{{ msg.text }}<span class="msg-time">{{ msg.created_at|date:"H:i" }}</span></div>
+  {% if msg.is_deleted %}
+    <div class="msg msg-deleted {% if msg.sender_id == user.pk %}mine{% endif %}">Сообщение удалено<span class="msg-time">{{ msg.created_at|date:"H:i" }}</span></div>
+  {% elif msg.sender_id == user.pk %}
+    <div class="msg-row mine">
+      <details class="msg-menu">
+        <summary aria-label="Действия с сообщением">⋯</summary>
+        <button type="button" class="msg-menu-item"
+                hx-post="{% url 'messaging:delete' match.pk msg.pk %}" hx-target="#chat-box" hx-swap="innerHTML">Удалить у всех</button>
+      </details>
+      <div class="msg mine">{{ msg.text }}<span class="msg-time">{{ msg.created_at|date:"H:i" }}</span></div>
+    </div>
+  {% else %}
+    <div class="msg">{{ msg.text }}<span class="msg-time">{{ msg.created_at|date:"H:i" }}</span></div>
+  {% endif %}
 {% endfor %}
 {% if error %}<p class="chat-error" role="alert">{{ error }}</p>{% endif %}

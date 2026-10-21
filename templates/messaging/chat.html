@@ -53,7 +53,7 @@
 
   {# Поллинг: каждые 5 секунд подгружаем новые сообщения. Позже можно заменить на WebSocket. #}
   <div id="chat-box" class="chat-box" aria-live="polite"
-       hx-get="{% url 'messaging:messages' match.pk %}" hx-trigger="every 5s" hx-swap="innerHTML">
+       hx-get="{% url 'messaging:messages' match.pk %}" hx-trigger="every 5s [!document.querySelector('#chat-box details[open]')]" hx-swap="innerHTML">
     {% include "messaging/_messages.html" %}
   </div>
 

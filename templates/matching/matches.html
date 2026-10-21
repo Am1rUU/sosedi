@@ -62,7 +62,7 @@
             </span>
             <span class="list-sub truncate">{{ item.match.listing.title }}</span>
             <span class="list-msg {% if item.unread %}unread{% endif %}">
-              <span class="truncate">{% if item.last_message.sender_id == user.pk %}Вы: {% endif %}{{ item.last_message.text }}</span>
+              <span class="truncate">{% if item.last_message.sender_id == user.pk %}Вы: {% endif %}{% if item.last_message.is_deleted %}<i>Сообщение удалено</i>{% else %}{{ item.last_message.text }}{% endif %}</span>
               {% if item.unread %}<span class="count-badge" aria-label="непрочитанных: {{ item.unread }}">{{ item.unread }}</span>{% endif %}
             </span>
           </span>

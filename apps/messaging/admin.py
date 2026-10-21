@@ -10,7 +10,8 @@ class MessageAdmin(admin.ModelAdmin):
     Важно: доступ к переписке должен быть описан в политике конфиденциальности.
     """
 
-    list_display = ("sender", "match", "short_text", "created_at")
+    list_display = ("sender", "match", "short_text", "created_at", "deleted_at")
+    list_filter = (("deleted_at", admin.EmptyFieldListFilter),)
     search_fields = ("text", "sender__email")
     raw_id_fields = ("match", "sender")
 

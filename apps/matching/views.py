@@ -217,7 +217,9 @@ def matches(request):
             "match": match,
             "other": match.other_side(request.user),
             "last_message": match.messages.order_by("-created_at").first(),
-            "unread": match.messages.filter(read_at__isnull=True).exclude(sender=request.user).count(),
+            "unread": match.messages.filter(read_at__isnull=True, deleted_at__isnull=True)
+            .exclude(sender=request.user)
+            .count(),
             "i_am_owner": match.listing.owner_id == request.user.pk,
         }
         (as_owner if item["i_am_owner"] else as_seeker).append(item)
