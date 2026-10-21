@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Фильтры поиска — Соседи{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<div class="back-row" style="margin-top:4px">
+  <a href="{% url 'matching:feed' %}" class="icon-btn" aria-label="Назад к ленте">{% include "includes/icon.html" with name="back" %}</a>
+  <div class="grow"><div style="font-weight:600">Фильтры поиска</div></div>
+</div>
+<p class="page-lead" style="margin-top:8px">Какие комнаты показывать вам в ленте. Хозяева фильтры не видят — они видят <a href="{% url 'accounts:profile_edit' %}">вашу анкету</a>.</p>
+
+<form method="post">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<ul class="errorlist nonfield">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+
+  <fieldset class="form-card">
+    <legend>Где и сколько</legend>
+    {% include "includes/_field.html" with field=form.city %}
+    <div class="field-pair">
+      {% include "includes/_field.html" with field=form.rent_min %}
+      {% include "includes/_field.html" with field=form.rent_max %}
+    </div>
+    {% include "includes/_field.html" with field=form.room_types %}
+  </fieldset>
+
+  <fieldset class="form-card">
+    <legend>Метро и район</legend>
+    {% include "includes/_field.html" with field=form.areas %}
+    {% include "includes/_field.html" with field=form.areas_only %}
+    {% include "includes/_field.html" with field=form.max_walk_minutes %}
+  </fieldset>
+
+  <fieldset class="form-card">
+    <legend>Условия</legend>
+    {% include "includes/_field.html" with field=form.available_by %}
+    {% include "includes/_field.html" with field=form.furnished_only %}
+    {% include "includes/_field.html" with field=form.bills_included_only %}
+    {% include "includes/_field.html" with field=form.pets_needed %}
+    {% include "includes/_field.html" with field=form.smoking_needed %}
+  </fieldset>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary btn-block">Показать комнаты</button>
+  </div>
+</form>
+<form method="post" style="text-align:center;margin-top:4px">
+  {% csrf_token %}
+  <button type="submit" name="reset" value="1" class="btn btn-ghost btn-sm">Сбросить к значениям из анкеты</button>
+</form>
+{% endblock %}

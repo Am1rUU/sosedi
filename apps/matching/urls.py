@@ -9,6 +9,7 @@ urlpatterns = [
     path("", views.feed, name="feed"),
     path("swipe/<int:listing_id>/", views.seeker_swipe, name="seeker_swipe"),
     path("again/", views.rewatch_feed, name="rewatch_feed"),
+    path("filters/", views.search_filters, name="filters"),
     path("listing/<int:listing_id>/again/", views.rewatch_owner_feed, name="rewatch_owner_feed"),
     # Владелец смотрит анкеты по своему объявлению
     path("listing/<int:listing_id>/", views.owner_feed, name="owner_feed"),

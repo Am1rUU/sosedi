@@ -123,11 +123,12 @@ def test_seeker_feed_filters_city_budget_and_own(seeker, make_listing, other_cit
     assert seeker_feed(seeker) == [good]
 
 
-def test_seeker_feed_allows_ten_percent_over_budget(make_user, make_listing):
-    seeker = make_user(budget_max=30000)
-    slightly_over = make_listing(rent=33000)
-    make_listing(rent=34000)
-    assert seeker_feed(seeker) == [slightly_over]
+def test_seeker_feed_price_filter_is_exact(make_user, make_listing):
+    """Фильтр «цена до» — точный (раньше лента допускала +10% к бюджету анкеты)."""
+    seeker = make_user(budget_max=30000)  # фильтры заполнятся из анкеты: цена до 30 000
+    within = make_listing(rent=30000)
+    make_listing(rent=31000)
+    assert seeker_feed(seeker) == [within]
 
 
 def test_seeker_feed_respects_gender_and_house_rules(make_user, make_listing):

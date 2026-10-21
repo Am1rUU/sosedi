@@ -24,7 +24,7 @@ from apps.listings.models import Listing
 from apps.moderation.services import blocked_user_ids, is_blocked_between
 from config import ratelimit
 
-from .models import Match, Swipe
+from .models import Match, SearchFilters, Swipe
 
 
 @dataclass
@@ -176,38 +176,83 @@ def _resurface_cutoff(reset_at=None):
     return max(cutoff, reset_at) if reset_at else cutoff
 
 
+def filters_for(user: User) -> SearchFilters:
+    """Фильтры ленты человека. Если их ещё нет — создаём из анкеты (один раз)."""
+    try:
+        return user.search_filters
+    except SearchFilters.DoesNotExist:
+        pass
+    profile = user.profile
+    filters, _ = SearchFilters.objects.get_or_create(
+        user=user,
+        defaults={
+            "city_id": profile.city_id,
+            "rent_max": profile.budget_max,
+            "areas": profile.preferred_districts,
+            "available_by": profile.move_in_date,
+            "pets_needed": profile.has_pets,
+            "smoking_needed": profile.smoker,
+        },
+    )
+    user.search_filters = filters
+    return filters
+
+
+def _area_query(areas: list[str]) -> Q:
+    # Каждое слово — в исходном написании и с заглавной буквы: SQLite (локально) не умеет
+    # сравнивать кириллицу без учёта регистра, PostgreSQL на сайте — умеет
+    query = Q()
+    for area in areas:
+        for variant in {area, area.capitalize()}:
+            query |= Q(metro__icontains=variant) | Q(district__icontains=variant)
+    return query
+
+
 def seeker_feed(user: User, limit: int | None = None) -> list[Listing]:
     """Лента объявлений для ищущего.
 
-    Порядок фильтрации и ранжирования (см. архитектуру):
-    1. Жёсткие фильтры: город, бюджет, пол, свои объявления не показываем.
-    2. Исключаем уже оценённые: лайкнутые — навсегда, пропущенные — на N дней.
-    3. Сначала объявления, владельцы которых уже лайкнули этого человека.
-    4. Затем совместимость по образу жизни и свежесть.
+    1. Фильтры поиска (отдельная страница, не анкета): город, цена, тип жилья,
+       метро, время до метро, мебель, коммуналка, животные, курение.
+    2. Условие хозяина по полу соседа — по полу из анкеты.
+    3. Исключаем уже оценённые: лайкнутые — навсегда, пропущенные — на N дней.
+    4. Сначала объявления, владельцы которых уже лайкнули этого человека,
+       затем активные владельцы и совпадения с пожеланиями (район, бюджет, дата).
     """
     profile: Profile = user.profile
+    filters = filters_for(user)
     limit = limit or settings.FEED_BATCH_SIZE
-    if not profile.city_id:
+    if not filters.city_id:
         return []
 
-    qs = Listing.objects.visible().filter(city_id=profile.city_id).exclude(owner=user)
+    qs = Listing.objects.visible().filter(city_id=filters.city_id).exclude(owner=user)
     qs = qs.exclude(owner_id__in=blocked_user_ids(user))
 
-    # Бюджет: допускаем превышение на 10%, люди часто готовы немного добавить
-    if profile.budget_max:
-        qs = qs.filter(rent__lte=int(profile.budget_max * 1.1))
+    # --- Фильтры поиска ---
+    if filters.rent_min:
+        qs = qs.filter(rent__gte=filters.rent_min)
+    if filters.rent_max:
+        qs = qs.filter(rent__lte=filters.rent_max)
+    if filters.room_type_list:
+        qs = qs.filter(room_type__in=filters.room_type_list)
+    if filters.areas_only and filters.area_list:
+        qs = qs.filter(_area_query(filters.area_list))
+    if filters.max_walk_minutes:
+        # Если хозяин не указал время до метро — показываем: лучше лишняя карточка, чем потерянная
+        qs = qs.filter(Q(metro_walk_minutes__lte=filters.max_walk_minutes) | Q(metro_walk_minutes__isnull=True))
+    if filters.furnished_only:
+        qs = qs.filter(furnished=True)
+    if filters.bills_included_only:
+        qs = qs.filter(bills_included=True)
+    if filters.pets_needed:
+        qs = qs.filter(pets_allowed=True)
+    if filters.smoking_needed:
+        qs = qs.filter(smoking_allowed=True)
 
-    # Пол: объявление «только женщины» не показываем мужчинам и наоборот
+    # Условие хозяина: объявление «только женщины» не показываем мужчинам и наоборот
     if profile.gender == Profile.Gender.MALE:
         qs = qs.exclude(preferred_gender=Listing.GenderPreference.FEMALE)
     elif profile.gender == Profile.Gender.FEMALE:
         qs = qs.exclude(preferred_gender=Listing.GenderPreference.MALE)
-
-    # Несовместимые правила дома отсекаем сразу
-    if profile.smoker:
-        qs = qs.filter(smoking_allowed=True)
-    if profile.has_pets:
-        qs = qs.filter(pets_allowed=True)
 
     # Исключаем уже оценённые этим человеком объявления
     my_swipes = Swipe.objects.filter(listing=OuterRef("pk"), seeker=user, side=Swipe.Side.SEEKER)
@@ -233,7 +278,7 @@ def seeker_feed(user: User, limit: int | None = None) -> list[Listing]:
     candidates = list(qs[: limit * 3])
     for listing in candidates:
         # Причины совместимости показываются в карточке строкой «Подходит вам: …»
-        listing.fit_reasons = fit_reasons(profile, listing)
+        listing.fit_reasons = fit_reasons(filters, listing)
     candidates.sort(key=lambda listing: (not listing.liked_me, listing.activity, -_listing_score(listing.fit_reasons)))
     return candidates[:limit]
 
@@ -242,20 +287,15 @@ def seeker_feed(user: User, limit: int | None = None) -> list[Listing]:
 _FIT_WEIGHTS = {"район": 3, "дата заезда": 2, "бюджет": 1}
 
 
-def fit_reasons(profile: Profile, listing: Listing) -> list[str]:
-    """Чем объявление подходит человеку — короткие причины для карточки."""
+def fit_reasons(filters: SearchFilters, listing: Listing) -> list[str]:
+    """Чем объявление подходит человеку — короткие причины для карточки (по его фильтрам)."""
     reasons = []
-    # Цена в пределах бюджета (в ленту допускаются и чуть дороже, но «подходит» — только в бюджете)
-    if profile.budget_max and listing.rent <= profile.budget_max:
+    if filters.rent_max and listing.rent <= filters.rent_max:
         reasons.append("бюджет")
-    # Совпадение по району или метро из пожеланий
-    wishes = (profile.preferred_districts or "").lower()
-    if wishes and (
-        (listing.district and listing.district.lower() in wishes) or (listing.metro and listing.metro.lower() in wishes)
-    ):
+    areas = [a.lower() for a in filters.area_list]
+    if areas and any(a in (listing.metro or "").lower() or a in (listing.district or "").lower() for a in areas):
         reasons.append("район")
-    # Комната свободна к желаемой дате заезда
-    if profile.move_in_date and listing.available_from <= profile.move_in_date:
+    if filters.available_by and listing.available_from <= filters.available_by:
         reasons.append("дата заезда")
     return reasons
 

@@ -2,17 +2,22 @@
 {% load humanize %}
 {% block title %}Комнаты — Соседи{% endblock %}
 {% block header_actions %}
-  <a class="icon-btn" href="{% url 'accounts:profile_edit' %}" aria-label="Параметры поиска">
+  <a class="icon-btn" href="{% url 'matching:filters' %}" aria-label="Фильтры поиска">
     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
   </a>
 {% endblock %}
 {% block content %}
-{% with p=user.profile %}
-<ul class="chips" style="margin-bottom:14px" aria-label="Параметры поиска">
-  <li class="chip chip-dark">{{ p.city }}</li>
-  {% if p.budget_max %}<li class="chip">до {{ p.budget_max|intcomma }} ₽</li>{% endif %}
-  {% if p.move_in_date %}<li class="chip">заезд с {{ p.move_in_date|date:"j E" }}</li>{% endif %}
-</ul>
+{% with f=filters %}
+<a class="chips chips-link" style="margin-bottom:14px" href="{% url 'matching:filters' %}" aria-label="Фильтры поиска — изменить">
+  <span class="chip chip-dark">{{ f.city }}</span>
+  {% if f.rent_min and f.rent_max %}<span class="chip">{{ f.rent_min|intcomma }}–{{ f.rent_max|intcomma }} ₽</span>
+  {% elif f.rent_max %}<span class="chip">до {{ f.rent_max|intcomma }} ₽</span>
+  {% elif f.rent_min %}<span class="chip">от {{ f.rent_min|intcomma }} ₽</span>{% endif %}
+  {% if f.max_walk_minutes %}<span class="chip">до {{ f.max_walk_minutes }} мин до метро</span>{% endif %}
+  {% if f.areas_only and f.areas %}<span class="chip">{{ f.areas|truncatechars:24 }}</span>{% endif %}
+  {% if f.room_type_list|length == 1 %}<span class="chip">{% if "whole" in f.room_type_list %}Квартира{% elif "shared" in f.room_type_list %}Место в комнате{% else %}Комната{% endif %}</span>{% endif %}
+  {% if f.pets_needed %}<span class="chip">с животными</span>{% endif %}
+</a>
 {% endwith %}
 <div id="feed-slot">
   {% include "matching/_listing_card.html" %}

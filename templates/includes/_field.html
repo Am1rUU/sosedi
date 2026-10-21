@@ -2,7 +2,7 @@
 <div class="field">
   {% if field.widget_type == "checkbox" %}
     <label class="check-label">{{ field }}<span>{{ field.label }}</span></label>
-  {% elif field.widget_type == "radioselect" %}
+  {% elif field.widget_type == "radioselect" or field.widget_type == "checkboxselectmultiple" %}
     <span class="field-label" id="{{ field.auto_id }}_label">{{ field.label }}</span>
     <div class="chip-choice" role="radiogroup" aria-labelledby="{{ field.auto_id }}_label">{{ field }}</div>
   {% else %}

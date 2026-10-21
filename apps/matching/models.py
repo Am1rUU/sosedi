@@ -129,3 +129,52 @@ class Match(models.Model):
     def other_side(self, user):
         """Собеседник для указанного пользователя."""
         return self.listing.owner if user.pk == self.seeker_id else self.seeker
+
+
+class SearchFilters(models.Model):
+    """Фильтры ленты комнат — что показывать человеку.
+
+    Независимы от анкеты (анкета — то, что о человеке видят хозяева).
+    При первом обращении заполняются из анкеты, дальше живут сами по себе.
+    """
+
+    class RoomType(models.TextChoices):
+        ROOM = "room", "Комната"
+        SHARED = "shared", "Место в комнате"
+        WHOLE = "whole", "Квартира целиком"
+
+    WALK_CHOICES = [(5, "до 5 минут"), (10, "до 10 минут"), (15, "до 15 минут"), (20, "до 20 минут")]
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="search_filters", verbose_name="пользователь"
+    )
+    city = models.ForeignKey(
+        "geo.City", on_delete=models.PROTECT, null=True, blank=True, related_name="+", verbose_name="город"
+    )
+    rent_min = models.PositiveIntegerField("цена от", null=True, blank=True)
+    rent_max = models.PositiveIntegerField("цена до", null=True, blank=True)
+    room_types = models.CharField("тип жилья", max_length=40, blank=True, help_text="Через запятую; пусто — любой")
+    areas = models.CharField("станции метро или районы", max_length=255, blank=True)
+    areas_only = models.BooleanField("показывать только эти станции и районы", default=False)
+    max_walk_minutes = models.PositiveSmallIntegerField("пешком до метро", null=True, blank=True, choices=WALK_CHOICES)
+    available_by = models.DateField("заезд не позже", null=True, blank=True)
+    furnished_only = models.BooleanField("только с мебелью", default=False)
+    bills_included_only = models.BooleanField("только с коммуналкой в цене", default=False)
+    pets_needed = models.BooleanField("можно с животными", default=False)
+    smoking_needed = models.BooleanField("можно курить", default=False)
+    updated_at = models.DateTimeField("обновлены", auto_now=True)
+
+    class Meta:
+        verbose_name = "фильтры поиска"
+        verbose_name_plural = "фильтры поиска"
+
+    def __str__(self) -> str:
+        return f"Фильтры: {self.user}"
+
+    @property
+    def room_type_list(self) -> list[str]:
+        return [t for t in self.room_types.split(",") if t]
+
+    @property
+    def area_list(self) -> list[str]:
+        return [a.strip() for a in self.areas.replace(";", ",").split(",") if a.strip()]

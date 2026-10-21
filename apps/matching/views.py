@@ -21,6 +21,7 @@ from apps.messaging.views import QUICK_PHRASES_FOR_OWNER, QUICK_PHRASES_FOR_SEEK
 from apps.moderation.services import is_blocked_between
 
 from . import outcomes, services
+from .forms import SearchFiltersForm
 from .models import Match, Swipe
 
 
@@ -52,6 +53,7 @@ def feed(request):
         "listing": listings[0] if listings else None,
         "has_next": len(listings) > 1,
         "can_rewatch": not listings and services.has_passed_seeker(request.user),
+        "filters": services.filters_for(request.user),
     }
     return render(request, "matching/feed.html", context)
 
@@ -330,3 +332,23 @@ def rewatch_owner_feed(request, listing_id: int):
     services.rewatch_owner_feed(listing)
     messages.info(request, "Показываем пропущенные анкеты ещё раз")
     return redirect("matching:owner_feed", listing_id=listing.pk)
+
+
+# --- Фильтры поиска ---------------------------------------------------------
+
+
+@login_required
+def search_filters(request):
+    """Фильтры ленты комнат — отдельно от анкеты (анкету видят хозяева, фильтры — только вы)."""
+    filters = services.filters_for(request.user)
+    form = SearchFiltersForm(request.POST or None, instance=filters)
+    if request.method == "POST":
+        if request.POST.get("reset"):
+            filters.delete()  # при следующем открытии ленты фильтры заново заполнятся из анкеты
+            messages.info(request, "Фильтры сброшены к значениям из анкеты")
+            return redirect("matching:feed")
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Фильтры сохранены")
+            return redirect("matching:feed")
+    return render(request, "matching/filters.html", {"form": form})

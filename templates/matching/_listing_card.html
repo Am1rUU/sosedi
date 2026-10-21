@@ -43,12 +43,12 @@
 <div class="card empty">
   <div class="empty-icon">{% include "includes/icon.html" with name="search" %}</div>
   <h2>Подходящие комнаты закончились</h2>
-  <p>Загляните позже — новые объявления появляются каждый день. Можно расширить бюджет или районы в анкете{% if can_rewatch %} или ещё раз посмотреть те, что вы пропустили{% endif %}.</p>
+  <p>Загляните позже — новые объявления появляются каждый день. Можно ослабить фильтры{% if can_rewatch %} или ещё раз посмотреть те, что вы пропустили{% endif %}.</p>
   <div class="btn-row" style="justify-content:center">
     {% if can_rewatch %}
       <form method="post" action="{% url 'matching:rewatch_feed' %}" style="margin:0">{% csrf_token %}<button class="btn btn-primary">Посмотреть ещё раз</button></form>
     {% endif %}
-    <a class="btn" href="{% url 'accounts:profile_edit' %}">Изменить параметры</a>
+    <a class="btn" href="{% url 'matching:filters' %}">Изменить фильтры</a>
   </div>
 </div>
 {% endif %}

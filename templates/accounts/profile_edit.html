@@ -2,7 +2,7 @@
 {% block title %}Моя анкета — Соседи{% endblock %}
 {% block content %}
 <h1 class="page-title">Какой вы сосед?</h1>
-<p class="page-lead">Анкету видят владельцы комнат, если включено «Ищу жильё». Тех, с кем вы совпадаете, покажем выше в ленте.</p>
+<p class="page-lead">Это ваша анкета — её видят хозяева комнат, если включено «Ищу жильё». Какие комнаты показывать вам, настраивается отдельно — в <a href="{% url 'matching:filters' %}">фильтрах поиска</a>.</p>
 
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
@@ -20,7 +20,7 @@
   </fieldset>
 
   <fieldset class="form-card">
-    <legend>Что ищу</legend>
+    <legend>Что ищу — это видят хозяева</legend>
     {% include "includes/_field.html" with field=form.is_seeking %}
     {% if form.instance.is_seeking %}<a class="small" href="{% url 'matching:found' %}">Я уже нашёл(ла) жильё</a>{% endif %}
     {% include "includes/_field.html" with field=form.city %}
