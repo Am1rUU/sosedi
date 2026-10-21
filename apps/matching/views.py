@@ -82,6 +82,9 @@ def seeker_swipe(request, listing_id: int):
             messages.error(request, error)
         if new_match:
             return redirect("matching:match", match_id=new_match.pk)
+        # Ответ из блока «Вас лайкнули» — возвращаемся туда же
+        if request.POST.get("next") == "matches":
+            return redirect(reverse("matching:matches") + "?role=seeker")
         return redirect("matching:feed")
 
     if new_match:
@@ -217,9 +220,12 @@ def matches(request):
         }
         (as_owner if item["i_am_owner"] else as_seeker).append(item)
 
+    # Комнаты, хозяева которых лайкнули человека, — ждут его ответа
+    liked_me = list(services.incoming_likes_for_seeker(request.user))
+
     # Вкладка по умолчанию — та, где есть мэтчи (сначала «Я ищу»)
     if role not in ("seeker", "owner"):
-        role = "owner" if as_owner and not as_seeker else "seeker"
+        role = "owner" if as_owner and not as_seeker and not liked_me else "seeker"
     items = as_owner if role == "owner" else as_seeker
     return render(
         request,
@@ -227,6 +233,8 @@ def matches(request):
         {
             "role": role,
             "seeker_count": len(as_seeker),
+            "liked_me": liked_me if role == "seeker" else [],
+            "liked_me_count": len(liked_me),
             "owner_count": len(as_owner),
             "new_items": [i for i in items if i["last_message"] is None],
             "chat_items": [i for i in items if i["last_message"] is not None],

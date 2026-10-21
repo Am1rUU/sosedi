@@ -22,7 +22,9 @@ def site_flags(request):
         open_matches = Match.objects.filter(Q(seeker=user) | Q(listing__owner=user), is_closed=False)
         unread = Message.objects.filter(match__in=open_matches, read_at__isnull=True).exclude(sender=user).count()
         not_started = open_matches.filter(messages__isnull=True).count()
-        context["nav_badge"] = unread + not_started
+        from apps.matching.services import incoming_likes_for_seeker
+
+        context["nav_badge"] = unread + not_started + incoming_likes_for_seeker(user).count()
         context["email_unverified"] = not user.can_interact
 
         # Вопрос «Нашли соседа/комнату?» — только на страницах сайта, не в админке

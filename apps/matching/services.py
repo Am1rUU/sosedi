@@ -15,7 +15,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
-from django.db.models import Case, Exists, F, IntegerField, OuterRef, Q, QuerySet, Value, When
+from django.db.models import Case, Exists, F, IntegerField, OuterRef, Q, QuerySet, Subquery, Value, When
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
@@ -360,6 +360,33 @@ def rewatch_seeker_feed(user: User) -> None:
 def rewatch_owner_feed(listing: Listing) -> None:
     """«Посмотреть ещё раз» для ленты анкет по объявлению."""
     Listing.objects.filter(pk=listing.pk).update(feed_reset_at=timezone.now())
+
+
+def incoming_likes_for_seeker(user: User) -> QuerySet[Listing]:
+    """Комнаты, хозяева которых лайкнули анкету человека, а он ещё не ответил.
+
+    Ответом считается лайк в любой момент или пропуск ПОСЛЕ лайка хозяина:
+    если человек пропустил комнату раньше, а хозяин лайкнул позже — показываем,
+    лайк хозяина — повод взглянуть ещё раз.
+    """
+    owner_like = Swipe.objects.filter(
+        listing=OuterRef("pk"), seeker=user, side=Swipe.Side.OWNER, decision=Swipe.Decision.LIKE
+    )
+    answered = Swipe.objects.filter(listing=OuterRef("pk"), seeker=user, side=Swipe.Side.SEEKER).filter(
+        Q(decision=Swipe.Decision.LIKE) | Q(created_at__gte=OuterRef("owner_liked_at"))
+    )
+    return (
+        Listing.objects.visible()
+        .filter(Exists(owner_like))
+        .annotate(owner_liked_at=Subquery(owner_like.values("created_at")[:1]))
+        .exclude(Exists(answered))
+        .exclude(Exists(Match.objects.filter(listing=OuterRef("pk"), seeker=user)))
+        .exclude(owner=user)
+        .exclude(owner_id__in=blocked_user_ids(user))
+        .select_related("city", "owner__profile")
+        .prefetch_related("photos")
+        .order_by("-owner_liked_at")
+    )
 
 
 def incoming_likes_for_listing(listing: Listing) -> QuerySet[User]:
