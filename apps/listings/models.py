@@ -83,6 +83,9 @@ class Listing(models.Model):
         "пол соседа", max_length=3, choices=GenderPreference.choices, default=GenderPreference.ANY
     )
 
+    # «Посмотреть ещё раз» в ленте анкет: пропущенные до этого момента люди снова показываются
+    feed_reset_at = models.DateTimeField("лента анкет сброшена", null=True, blank=True)
+
     created_at = models.DateTimeField("создано", auto_now_add=True)
     updated_at = models.DateTimeField("обновлено", auto_now=True)
 

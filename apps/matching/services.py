@@ -166,9 +166,14 @@ def _with_activity(qs: QuerySet, user_prefix: str = "") -> QuerySet:
     return qs.annotate(_seen=seen).filter(_seen__gte=hide_before).annotate(activity=bucket)
 
 
-def _resurface_cutoff():
-    """Момент, раньше которого пропущенные карточки снова можно показывать."""
-    return timezone.now() - timedelta(days=settings.FEED_RESURFACE_PASSED_AFTER_DAYS)
+def _resurface_cutoff(reset_at=None):
+    """Момент, раньше которого пропущенные карточки снова можно показывать.
+
+    Пропущенное возвращается само через FEED_RESURFACE_PASSED_AFTER_DAYS дней,
+    а после кнопки «Посмотреть ещё раз» (reset_at) — сразу всё пропущенное до неё.
+    """
+    cutoff = timezone.now() - timedelta(days=settings.FEED_RESURFACE_PASSED_AFTER_DAYS)
+    return max(cutoff, reset_at) if reset_at else cutoff
 
 
 def seeker_feed(user: User, limit: int | None = None) -> list[Listing]:
@@ -207,7 +212,8 @@ def seeker_feed(user: User, limit: int | None = None) -> list[Listing]:
     # Исключаем уже оценённые этим человеком объявления
     my_swipes = Swipe.objects.filter(listing=OuterRef("pk"), seeker=user, side=Swipe.Side.SEEKER)
     already_decided = my_swipes.filter(
-        Q(decision=Swipe.Decision.LIKE) | Q(decision=Swipe.Decision.PASS, created_at__gte=_resurface_cutoff())
+        Q(decision=Swipe.Decision.LIKE)
+        | Q(decision=Swipe.Decision.PASS, created_at__gte=_resurface_cutoff(profile.feed_reset_at))
     )
     qs = qs.exclude(Exists(already_decided))
 
@@ -295,7 +301,8 @@ def owner_feed(user: User, listing: Listing, limit: int | None = None) -> list[U
 
     # Уже оценённые владельцем анкеты по этому объявлению
     decided = Swipe.objects.filter(listing=listing, seeker=OuterRef("pk"), side=Swipe.Side.OWNER).filter(
-        Q(decision=Swipe.Decision.LIKE) | Q(decision=Swipe.Decision.PASS, created_at__gte=_resurface_cutoff())
+        Q(decision=Swipe.Decision.LIKE)
+        | Q(decision=Swipe.Decision.PASS, created_at__gte=_resurface_cutoff(listing.feed_reset_at))
     )
     qs = qs.exclude(Exists(decided))
 
@@ -319,6 +326,40 @@ def owner_feed(user: User, listing: Listing, limit: int | None = None) -> list[U
         "-liked_me", "activity", "-date_fit", "-profile__updated_at"
     )
     return list(qs[:limit])
+
+
+def has_passed_seeker(user: User) -> bool:
+    """Есть ли пропущенные комнаты, которые можно пересмотреть (для кнопки «Посмотреть ещё раз»)."""
+    return Swipe.objects.filter(
+        seeker=user,
+        side=Swipe.Side.SEEKER,
+        decision=Swipe.Decision.PASS,
+        created_at__gte=_resurface_cutoff(user.profile.feed_reset_at),
+        listing__in=Listing.objects.visible(),
+    ).exists()
+
+
+def has_passed_owner(listing: Listing) -> bool:
+    """Есть ли пропущенные анкеты по объявлению, которые можно пересмотреть."""
+    return Swipe.objects.filter(
+        listing=listing,
+        side=Swipe.Side.OWNER,
+        decision=Swipe.Decision.PASS,
+        created_at__gte=_resurface_cutoff(listing.feed_reset_at),
+        seeker__is_active=True,
+    ).exists()
+
+
+def rewatch_seeker_feed(user: User) -> None:
+    """«Посмотреть ещё раз»: вернуть в ленту все пропущенные комнаты (лайкнутые не возвращаем)."""
+    profile = user.profile
+    profile.feed_reset_at = timezone.now()
+    profile.save(update_fields=["feed_reset_at", "updated_at"])
+
+
+def rewatch_owner_feed(listing: Listing) -> None:
+    """«Посмотреть ещё раз» для ленты анкет по объявлению."""
+    Listing.objects.filter(pk=listing.pk).update(feed_reset_at=timezone.now())
 
 
 def incoming_likes_for_listing(listing: Listing) -> QuerySet[User]:

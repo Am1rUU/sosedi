@@ -31,7 +31,12 @@
 <div class="card empty">
   <div class="empty-icon">{% include "includes/icon.html" with name="search" %}</div>
   <h2>Подходящие анкеты закончились</h2>
-  <p>Новые люди регистрируются каждый день. Проверьте, не слишком ли строгие условия в объявлении.</p>
-  <a class="btn" href="{% url 'listings:edit' listing.pk %}">Изменить объявление</a>
+  <p>Новые люди регистрируются каждый день. Проверьте, не слишком ли строгие условия в объявлении{% if can_rewatch %}, или ещё раз посмотрите тех, кого пропустили{% endif %}.</p>
+  <div class="btn-row" style="justify-content:center">
+    {% if can_rewatch %}
+      <form method="post" action="{% url 'matching:rewatch_owner_feed' listing.pk %}" style="margin:0">{% csrf_token %}<button class="btn btn-primary">Посмотреть ещё раз</button></form>
+    {% endif %}
+    <a class="btn" href="{% url 'listings:edit' listing.pk %}">Изменить объявление</a>
+  </div>
 </div>
 {% endif %}

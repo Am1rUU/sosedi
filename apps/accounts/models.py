@@ -143,6 +143,8 @@ class Profile(models.Model):
     # --- Вопрос «Нашли?» ---
     # До этого момента не спрашиваем «Нашли соседа/комнату?» (человек ответил «Пока нет»)
     found_prompt_snoozed_until = models.DateTimeField("не спрашивать «Нашли?» до", null=True, blank=True)
+    # «Посмотреть ещё раз»: комнаты, пропущенные до этого момента, снова показываются в ленте
+    feed_reset_at = models.DateTimeField("лента сброшена", null=True, blank=True)
 
     created_at = models.DateTimeField("создана", auto_now_add=True)
     updated_at = models.DateTimeField("обновлена", auto_now=True)

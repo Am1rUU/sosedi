@@ -51,6 +51,7 @@ def feed(request):
     context = {
         "listing": listings[0] if listings else None,
         "has_next": len(listings) > 1,
+        "can_rewatch": not listings and services.has_passed_seeker(request.user),
     }
     return render(request, "matching/feed.html", context)
 
@@ -89,7 +90,12 @@ def seeker_swipe(request, listing_id: int):
     return render(
         request,
         "matching/_listing_card.html",
-        {"listing": listings[0] if listings else None, "has_next": len(listings) > 1, "swipe_error": error},
+        {
+            "listing": listings[0] if listings else None,
+            "has_next": len(listings) > 1,
+            "swipe_error": error,
+            "can_rewatch": not listings and services.has_passed_seeker(request.user),
+        },
     )
 
 
@@ -110,6 +116,7 @@ def owner_feed(request, listing_id: int):
         "person": people[0] if people else None,
         "has_next": len(people) > 1,
         "waiting_count": services.incoming_likes_for_listing(listing).count(),
+        "can_rewatch": not people and services.has_passed_owner(listing),
     }
     return render(request, "matching/owner_feed.html", context)
 
@@ -153,6 +160,7 @@ def owner_swipe(request, listing_id: int, seeker_id: int):
             "person": people[0] if people else None,
             "has_next": len(people) > 1,
             "swipe_error": error,
+            "can_rewatch": not people and services.has_passed_owner(listing),
         },
     )
 
@@ -292,3 +300,25 @@ def listing_confirm(request, listing_id: int):
     outcomes.confirm_listing_available(request.user, listing)
     messages.success(request, "Спасибо! Объявление продолжает показываться.")
     return redirect(request.POST.get("next") or "listings:my")
+
+
+# --- «Посмотреть ещё раз» -------------------------------------------------
+
+
+@login_required
+@require_POST
+def rewatch_feed(request):
+    """Вернуть в ленту все пропущенные комнаты."""
+    services.rewatch_seeker_feed(request.user)
+    messages.info(request, "Показываем пропущенные комнаты ещё раз")
+    return redirect("matching:feed")
+
+
+@login_required
+@require_POST
+def rewatch_owner_feed(request, listing_id: int):
+    """Вернуть в ленту анкет все пропущенные анкеты по объявлению."""
+    listing = get_object_or_404(Listing, pk=listing_id, owner=request.user)
+    services.rewatch_owner_feed(listing)
+    messages.info(request, "Показываем пропущенные анкеты ещё раз")
+    return redirect("matching:owner_feed", listing_id=listing.pk)
