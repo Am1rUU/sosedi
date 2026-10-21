@@ -11,10 +11,12 @@ from django.db import transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from apps.moderation.services import is_blocked_between
 from config import ratelimit
 
+from . import verification
 from .forms import DeleteAccountForm, LoginForm, ProfileForm, SignUpForm
 from .models import Invite, User
 
@@ -68,7 +70,15 @@ def signup(request):
                 invite.used_at = timezone.now()
                 invite.save(update_fields=["used_by", "used_at"])
         login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-        messages.success(request, "Добро пожаловать! Расскажите о себе — это займёт пару минут.")
+        if settings.EMAIL_VERIFICATION_REQUIRED:
+            verification.send_in_background(user)
+            messages.success(
+                request,
+                f"Добро пожаловать! Мы отправили письмо на {user.email} — подтвердите почту, "
+                "чтобы ставить лайки и писать. А пока расскажите о себе.",
+            )
+        else:
+            messages.success(request, "Добро пожаловать! Расскажите о себе — это займёт пару минут.")
         return redirect("accounts:profile_edit")
     return render_form()
 
@@ -124,7 +134,16 @@ def profile_edit(request):
             profile.photo.storage.delete(old_photo_name)
         messages.success(request, "Анкета сохранена")
         return redirect("matching:feed")
-    return render(request, "accounts/profile_edit.html", {"form": form})
+    from apps.notifications import telegram
+    from apps.notifications.services import email_configured, settings_for
+
+    context = {
+        "form": form,
+        "notif": settings_for(request.user),
+        "email_notifications_available": email_configured(),
+        "telegram_available": telegram.is_configured(),
+    }
+    return render(request, "accounts/profile_edit.html", context)
 
 
 @login_required
@@ -167,3 +186,28 @@ def account_delete(request):
         messages.info(request, "Аккаунт и все ваши данные удалены. Спасибо, что были с нами.")
         return redirect("home")
     return render(request, "accounts/account_delete.html", {"form": form})
+
+
+def verify_email(request, token: str):
+    """Переход по ссылке из письма."""
+    user = verification.confirm(token)
+    if user is None:
+        messages.error(request, "Ссылка устарела или неверна. Войдите и отправьте письмо ещё раз.")
+        return redirect("accounts:login" if not request.user.is_authenticated else "matching:feed")
+    messages.success(request, "Почта подтверждена! Теперь можно ставить лайки и писать сообщения.")
+    return redirect("matching:feed" if request.user.is_authenticated else "accounts:login")
+
+
+@login_required
+@require_POST
+def resend_verification(request):
+    """Кнопка «Отправить письмо ещё раз» (не чаще 3 раз в час)."""
+    user = request.user
+    if user.email_verified_at:
+        messages.info(request, "Почта уже подтверждена")
+    elif ratelimit.is_limited("verify_resend", str(user.pk), 3, 60 * 60):
+        messages.error(request, "Письмо уже отправлено несколько раз. Проверьте папку «Спам» или попробуйте через час.")
+    else:
+        verification.send_in_background(user)
+        messages.success(request, f"Письмо отправлено на {user.email}. Проверьте и папку «Спам».")
+    return redirect(request.POST.get("next") or "matching:feed")

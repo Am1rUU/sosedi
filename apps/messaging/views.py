@@ -15,6 +15,7 @@ from django.views.decorators.http import require_POST
 
 from apps.matching.models import Match
 from apps.moderation.services import is_blocked_between
+from apps.notifications.services import notify_message
 from config import ratelimit
 
 from .models import Message
@@ -95,12 +96,15 @@ def send_message(request, match_id: int):
     error = ""
     if match.is_closed:
         error = "Этот мэтч закрыт, отправка сообщений недоступна."
+    elif text and not request.user.can_interact:
+        error = "Подтвердите почту, чтобы писать сообщения, — ссылка в письме, которое мы отправили."
     elif text:
         # Защита от рассылки спама: живой человек столько не напишет
         if ratelimit.is_limited("message", str(request.user.pk), settings.MESSAGE_LIMIT_PER_10_MIN, 10 * 60):
             error = "Вы отправляете сообщения слишком часто. Подождите несколько минут."
         else:
-            Message.objects.create(match=match, sender=request.user, text=text)
+            message = Message.objects.create(match=match, sender=request.user, text=text)
+            notify_message(message)
 
     if request.headers.get("HX-Request") == "true":
         return render(

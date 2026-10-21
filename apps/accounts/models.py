@@ -63,6 +63,8 @@ class User(AbstractUser):
     # Когда человек последний раз заходил на сайт (обновляется не чаще раза в 10 минут).
     # По нему лента поднимает активных и прячет тех, кто пропал надолго.
     last_seen_at = models.DateTimeField("последний визит", null=True, blank=True, db_index=True)
+    # Когда человек подтвердил почту по ссылке из письма
+    email_verified_at = models.DateTimeField("почта подтверждена", null=True, blank=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS: list[str] = []
@@ -75,6 +77,13 @@ class User(AbstractUser):
 
     def __str__(self) -> str:
         return self.email
+
+    @property
+    def can_interact(self) -> bool:
+        """Можно ли ставить лайки и писать сообщения: почта подтверждена или подтверждение не требуется."""
+        from django.conf import settings
+
+        return bool(self.email_verified_at) or self.is_staff or not settings.EMAIL_VERIFICATION_REQUIRED
 
 
 class Profile(models.Model):

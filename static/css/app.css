@@ -400,3 +400,8 @@ input[type=file]::file-selector-button { margin-right: 10px; min-height: 40px; p
 .choice-row:has(input:checked) { border-color: var(--green); background: var(--mint); }
 .choice-row input { accent-color: var(--green); }
 .choice-row .avatar { width: 36px; height: 36px; flex: none; }
+
+/* Галочки настроек уведомлений */
+.check-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 15px; cursor: pointer; }
+.check-row input { width: 20px; height: 20px; accent-color: var(--green); flex: none; }
+.check-row input:disabled + span { color: var(--muted); }

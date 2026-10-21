@@ -6,6 +6,7 @@
 подобраны для локальной разработки, в проде их обязательно переопределить.
 """
 
+import hashlib
 import os
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -57,6 +58,7 @@ INSTALLED_APPS = [
     "apps.matching",  # свайпы, мэтчи, лента
     "apps.messaging",  # чат после мэтча
     "apps.moderation",  # жалобы и модерация
+    "apps.notifications",  # уведомления на почту и в Telegram
 ]
 
 MIDDLEWARE = [
@@ -259,6 +261,42 @@ LISTING_CONFIRM_AFTER_DAYS = int(os.environ.get("LISTING_CONFIRM_AFTER_DAYS", "3
 
 # Сколько жалоб на пользователя автоматически скрывают его до проверки
 AUTO_HIDE_AFTER_REPORTS = int(os.environ.get("AUTO_HIDE_AFTER_REPORTS", "3"))
+
+# --- Почта ---------------------------------------------------------------
+# Письма отправляются через SMTP почтового сервиса (например, Яндекс Почта с паролем приложения).
+# Пока EMAIL_HOST не задан, письма не уходят, а печатаются в лог (удобно для разработки),
+# и подтверждение почты не требуется — иначе никто не смог бы пользоваться сайтом.
+# Важно: Timeweb по умолчанию блокирует исходящие SMTP-порты — их открывают через поддержку.
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "").strip()
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "465"))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "").strip()
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "").strip()
+EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", default=EMAIL_PORT == 465)
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", default=EMAIL_PORT == 587)
+EMAIL_TIMEOUT = 10
+EMAIL_BACKEND = (
+    "django.core.mail.backends.smtp.EmailBackend" if EMAIL_HOST else "django.core.mail.backends.console.EmailBackend"
+)
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "").strip() or (
+    f"Соседи <{EMAIL_HOST_USER}>" if EMAIL_HOST_USER else "Соседи <noreply@sosedi.local>"
+)
+# Нужно ли подтверждать почту, чтобы ставить лайки и писать сообщения
+EMAIL_VERIFICATION_REQUIRED = env_bool("EMAIL_VERIFICATION_REQUIRED", default=bool(EMAIL_HOST))
+# Сколько дней действует ссылка из письма
+EMAIL_VERIFICATION_DAYS = 3
+
+# --- Уведомления ----------------------------------------------------------
+# Telegram-бот (опционально): токен от @BotFather. Имя бота сайт узнаёт сам.
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+# Секрет, по которому сайт узнаёт, что запрос пришёл именно от Telegram
+TELEGRAM_WEBHOOK_SECRET = (
+    os.environ.get("TELEGRAM_WEBHOOK_SECRET", "").strip()
+    or (hashlib.sha256(f"telegram:{SECRET_KEY}".encode()).hexdigest()[:40])
+)
+# Уведомление о новых сообщениях в одном чате — не чаще чем раз в N минут
+NOTIFY_MESSAGES_EVERY_MINUTES = int(os.environ.get("NOTIFY_MESSAGES_EVERY_MINUTES", "15"))
+# Отправлять уведомления в фоне, чтобы страница не ждала почтовый сервер (в тестах — сразу)
+NOTIFICATIONS_ASYNC = True
 
 # --- Закрытый тест --------------------------------------------------------
 

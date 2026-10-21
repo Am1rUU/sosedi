@@ -9,6 +9,7 @@ def site_flags(request):
         "INVITE_ONLY": settings.INVITE_ONLY,
         "SITE_NOINDEX": settings.SITE_NOINDEX,
         "nav_badge": 0,
+        "email_unverified": False,
     }
     user = getattr(request, "user", None)
     if user is not None and user.is_authenticated:
@@ -22,6 +23,7 @@ def site_flags(request):
         unread = Message.objects.filter(match__in=open_matches, read_at__isnull=True).exclude(sender=user).count()
         not_started = open_matches.filter(messages__isnull=True).count()
         context["nav_badge"] = unread + not_started
+        context["email_unverified"] = not user.can_interact
 
         # Вопрос «Нашли соседа/комнату?» — только на страницах сайта, не в админке
         on_answer_page = getattr(request.resolver_match, "url_name", "") == "found"

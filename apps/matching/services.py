@@ -83,6 +83,10 @@ def record_swipe(actor: User, listing: Listing, seeker: User, side: str, decisio
     if decision not in Swipe.Decision.values:
         raise ValidationError("Неизвестное решение")
 
+    # Лайк — действие в сторону другого человека: только с подтверждённой почтой
+    if decision == Swipe.Decision.LIKE and not actor.can_interact:
+        raise ValidationError("Подтвердите почту, чтобы ставить лайки, — ссылка в письме, которое мы отправили.")
+
     # Защита от ботов, которые лайкают всех подряд
     if ratelimit.is_limited("swipe", str(actor.pk), settings.SWIPE_LIMIT_PER_HOUR, 60 * 60):
         raise ValidationError("Слишком много свайпов подряд. Сделайте паузу и возвращайтесь чуть позже.")
@@ -120,6 +124,10 @@ def record_swipe(actor: User, listing: Listing, seeker: User, side: str, decisio
             match.save(update_fields=["is_closed"])
             created = True
 
+    if created:
+        from apps.notifications.services import notify_match
+
+        notify_match(match, actor)
     return SwipeResult(swipe=swipe, match=match if created else None)
 
 

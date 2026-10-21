@@ -26,6 +26,10 @@ def _test_settings(settings, tmp_path):
     settings.PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
     settings.MEDIA_ROOT = tmp_path / "media"
     settings.INVITE_ONLY = False
+    settings.NOTIFICATIONS_ASYNC = False  # уведомления отправляются сразу, чтобы тесты их видели
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    settings.EMAIL_VERIFICATION_REQUIRED = False  # тесты подтверждения почты включают его сами
+    settings.TELEGRAM_BOT_TOKEN = ""
     from django.core.cache import cache
 
     cache.clear()

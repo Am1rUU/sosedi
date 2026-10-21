@@ -7,6 +7,7 @@ from django.urls import include, path, re_path
 from django.views.generic import TemplateView
 from django.views.static import serve
 
+from apps.notifications.views import telegram_webhook
 from config.status import status_view
 
 # Заголовки админки — это рабочее место модераторов
@@ -34,6 +35,9 @@ urlpatterns = [
     path("feed/", include("apps.matching.urls")),
     path("chat/", include("apps.messaging.urls")),
     path("report/", include("apps.moderation.urls")),
+    path("notifications/", include("apps.notifications.urls")),
+    # Сюда Telegram присылает сообщения боту (проверяется секретный заголовок)
+    path("telegram/webhook/", telegram_webhook, name="telegram_webhook"),
     path("robots.txt", robots_txt, name="robots"),
     # Проверка живости для балансировщика и мониторинга
     path("healthz/", TemplateView.as_view(template_name="healthz.txt", content_type="text/plain"), name="healthz"),

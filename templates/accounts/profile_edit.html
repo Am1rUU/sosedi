@@ -42,6 +42,37 @@
   </div>
 </form>
 
+<div class="form-card" id="notifications" style="margin-top:8px">
+  <div class="form-card-title">Уведомления о мэтчах и сообщениях</div>
+  <form method="post" action="{% url 'notifications:preferences' %}">
+    {% csrf_token %}
+    <label class="check-row">
+      <input type="checkbox" name="email_enabled" {% if notif.email_enabled %}checked{% endif %}>
+      <span>На почту <span class="muted small">{{ user.email }}{% if not user.email_verified_at %} · не подтверждена{% endif %}</span></span>
+    </label>
+    {% if telegram_available %}
+    {% if notif.telegram_connected %}
+    <label class="check-row">
+      <input type="checkbox" name="telegram_enabled" {% if notif.telegram_enabled %}checked{% endif %}>
+      <span>В Telegram <span class="muted small">{% if notif.telegram_username %}@{{ notif.telegram_username }}{% else %}подключён{% endif %}</span></span>
+    </label>
+    {% endif %}
+    {% endif %}
+    {% if not email_notifications_available %}<p class="helptext">Отправка писем на сайте пока не настроена.</p>{% endif %}
+    <button type="submit" class="btn btn-sm" style="margin-top:8px">Сохранить</button>
+  </form>
+  {% if telegram_available %}
+    <div class="btn-row" style="margin-top:12px">
+      {% if notif.telegram_connected %}
+        <form method="post" action="{% url 'notifications:telegram_disconnect' %}" style="margin:0">{% csrf_token %}<button class="btn btn-sm btn-ghost">Отключить Telegram</button></form>
+      {% else %}
+        <form method="post" action="{% url 'notifications:telegram_connect' %}" style="margin:0">{% csrf_token %}<button class="btn btn-sm btn-primary">Подключить Telegram</button></form>
+        <span class="helptext">Откроется бот — нажмите в нём «Старт».</span>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+
 <div class="form-card" style="margin-top:8px">
   <div class="form-card-title">Аккаунт</div>
   <div class="btn-row">

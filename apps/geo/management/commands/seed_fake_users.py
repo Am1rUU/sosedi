@@ -416,7 +416,9 @@ class Command(BaseCommand):
                 user.save()
                 created_users += 1
             # Освежаем «последний визит», чтобы анкета не считалась заброшенной
-            User.objects.filter(pk=user.pk).update(last_seen_at=now - timedelta(hours=rng.randint(1, 72)))
+            User.objects.filter(pk=user.pk).update(
+                last_seen_at=now - timedelta(hours=rng.randint(1, 72)), email_verified_at=now
+            )
             return user
 
         def set_avatar(profile: Profile, index: int):

@@ -150,8 +150,72 @@ def check_activity() -> Check:
     )
 
 
+def check_email() -> Check:
+    """Почта: настроена ли и пускает ли почтовый сервер (вход без отправки письма)."""
+    if not settings.EMAIL_HOST:
+        return Check(
+            "Почта",
+            False,
+            "Не настроена — письма не отправляются, подтверждение почты выключено",
+            ["Задайте EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD (см. README, раздел «Почта»)."],
+        )
+    from django.core.mail import get_connection
+
+    details = [
+        f"Сервер: {settings.EMAIL_HOST}:{settings.EMAIL_PORT}, отправитель: {settings.DEFAULT_FROM_EMAIL}",
+        f"Подтверждение почты: {'обязательно' if settings.EMAIL_VERIFICATION_REQUIRED else 'не требуется'}",
+    ]
+    try:
+        connection = get_connection(fail_silently=False)
+        connection.open()
+        connection.close()
+    except Exception as exc:
+        hint = f"Ошибка: {exc}"
+        text = str(exc).lower()
+        if "timed out" in text or "timeout" in text or "network is unreachable" in text:
+            hint += (
+                " — похоже, хостинг блокирует исходящую почту. "
+                f"Попросите поддержку Timeweb открыть исходящий порт {settings.EMAIL_PORT}."
+            )
+        elif "auth" in text or "535" in text or "password" in text:
+            hint += " — почтовый сервер не принял логин или пароль (для Яндекса нужен пароль приложения)."
+        return Check("Почта", False, "Не удалось подключиться к почтовому серверу", [*details, hint])
+    return Check("Почта", True, "Почтовый сервер принимает подключение", details)
+
+
+def check_telegram() -> Check:
+    """Telegram-бот: токен работает и Telegram доставляет сообщения боту на сайт."""
+    from apps.notifications import telegram
+    from apps.notifications.models import NotificationSettings
+
+    if not telegram.is_configured():
+        return Check("Telegram", True, "Не подключён (необязательно)", ["Чтобы включить — задайте TELEGRAM_BOT_TOKEN."])
+    try:
+        name = telegram.bot_username()
+        info = telegram.call("getWebhookInfo")
+    except telegram.TelegramError as exc:
+        return Check("Telegram", False, "Бот не отвечает", [f"Ошибка: {exc}"])
+    connected = NotificationSettings.objects.filter(telegram_chat_id__isnull=False).count()
+    details = [f"Бот: @{name}", f"Подключили уведомления: {connected} чел."]
+    if info.get("url") != telegram.webhook_url():
+        details.append(
+            f"Адрес для сообщений боту не настроен (сейчас: {info.get('url') or 'пусто'}). Перезапустите сайт."
+        )
+        return Check("Telegram", False, "Бот не получает сообщения", details)
+    if info.get("last_error_message"):
+        details.append(f"Последняя ошибка доставки: {info['last_error_message']}")
+    return Check("Telegram", True, "Бот работает", details)
+
+
 def run_all_checks() -> list[Check]:
-    return [check_database(), check_storage(), check_settings(), check_activity()]
+    return [
+        check_database(),
+        check_storage(),
+        check_email(),
+        check_telegram(),
+        check_settings(),
+        check_activity(),
+    ]
 
 
 @staff_member_required

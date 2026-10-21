@@ -10,6 +10,7 @@ from datetime import date, timedelta
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.utils import timezone
 
 from apps.accounts.models import Invite, Profile, User
 from apps.accounts.services import create_invites, invite_url
@@ -109,6 +110,7 @@ class Command(BaseCommand):
             user, created = User.objects.get_or_create(email=f"seeker{i}@sosedi.local")
             if created:
                 user.set_password(DEMO_PASSWORD)
+                user.email_verified_at = timezone.now()
                 user.save()
             Profile.objects.filter(user=user).update(
                 display_name=name,
@@ -133,6 +135,7 @@ class Command(BaseCommand):
             owner, created = User.objects.get_or_create(email=f"owner{i}@sosedi.local")
             if created:
                 owner.set_password(DEMO_PASSWORD)
+                owner.email_verified_at = timezone.now()
                 owner.save()
             Profile.objects.filter(user=owner).update(
                 display_name=["Ольга", "Сергей", "Алина", "Артём", "Павел"][i - 1],

@@ -36,7 +36,14 @@
 
   {% block main %}
   <main class="page">
-    {% if found_prompt %}{% include "matching/_found_prompt.html" with prompt=found_prompt %}{% endif %}
+    {% if email_unverified %}
+      <div class="prompt-card" role="region" aria-label="Подтверждение почты">
+        <div class="prompt-text"><b>Подтвердите почту.</b> Мы отправили ссылку на {{ user.email }}. Пока почта не подтверждена, можно смотреть ленту, но нельзя ставить лайки и писать.</div>
+        <div class="prompt-actions">
+          <form method="post" action="{% url 'accounts:resend_verification' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-sm">Отправить письмо ещё раз</button></form>
+        </div>
+      </div>
+    {% elif found_prompt %}{% include "matching/_found_prompt.html" with prompt=found_prompt %}{% endif %}
     {% for message in messages %}
       <div class="flash {% if message.tags == 'error' %}error{% endif %}" role="status">{{ message }}</div>
     {% endfor %}
