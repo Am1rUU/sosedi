@@ -1,0 +1,50 @@
+{% extends "admin/base_site.html" %}
+{# Очередь верификации: модератор сравнивает фото анкеты с живым селфи и проверяет жест. #}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Главная</a> › Верификация профилей</div>{% endblock %}
+{% block content %}
+<div style="max-width:900px">
+{% if current %}
+  <p style="font-size:14px;margin:0 0 12px">Ждут проверки: <b>{{ remaining }}</b>. Показана самая старая заявка — от {{ current.created_at|date:"j E, H:i" }}.</p>
+  <div style="padding:14px 18px;border-radius:12px;background:#FFF4D6;color:#5A4300;margin:0 0 16px;font-size:15px">
+    Задание: <b>{{ current.gesture_text }}</b>
+  </div>
+  {% if photo_changed %}
+    <div style="padding:12px 16px;border-radius:12px;background:#F8E6E2;color:#B3412F;margin:0 0 16px">Человек сменил фото анкеты после подачи заявки — подтвердить нельзя, отклоните.</div>
+  {% endif %}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <figure style="margin:0">
+      <figcaption style="font-weight:600;margin-bottom:6px">Фото в анкете</figcaption>
+      {% if current.user.profile.photo %}<img src="{{ current.user.profile.photo.url }}" alt="Фото анкеты" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;background:#eee">
+      {% else %}<div style="aspect-ratio:3/4;border-radius:12px;background:#eee;display:flex;align-items:center;justify-content:center">Нет фото</div>{% endif %}
+    </figure>
+    <figure style="margin:0">
+      <figcaption style="font-weight:600;margin-bottom:6px">Живое селфи</figcaption>
+      <img src="{{ current.selfie.url }}" alt="Селфи" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;background:#eee">
+    </figure>
+  </div>
+  <p style="margin:12px 0;font-size:14px">
+    {{ current.user.profile.display_name|default:"Без имени" }}{% if current.user.profile.age %}, {{ current.user.profile.age }}{% endif %} ·
+    <a href="{% url 'admin:accounts_user_change' current.user.pk %}">{{ current.user.email }}</a> ·
+    на сайте с {{ current.user.date_joined|date:"j E Y" }}
+  </p>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="request_id" value="{{ current.pk }}">
+      <button name="action" value="approve" class="button default" style="padding:10px 22px" {% if photo_changed %}disabled{% endif %}>✓ Это один человек, жест верный</button>
+    </form>
+    <form method="post" style="display:flex;gap:8px;align-items:center">{% csrf_token %}
+      <input type="hidden" name="request_id" value="{{ current.pk }}">
+      <select name="reason" required style="padding:8px">
+        <option value="">Причина отказа…</option>
+        {% for value, label in reasons %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+      </select>
+      <button name="action" value="reject" class="button" style="padding:10px 18px">Отклонить</button>
+    </form>
+  </div>
+  <p style="font-size:12px;color:#666;margin-top:16px">После решения селфи удаляется из хранилища. Человек получит уведомление о результате.</p>
+{% else %}
+  <p style="font-size:15px">✅ Все заявки проверены. Новых нет.</p>
+{% endif %}
+  <p style="margin-top:24px"><a href="{% url 'admin:accounts_verificationrequest_changelist' %}">История заявок</a></p>
+</div>
+{% endblock %}

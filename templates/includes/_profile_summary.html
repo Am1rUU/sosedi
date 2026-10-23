@@ -1,7 +1,7 @@
 {% load humanize %}{# Анкета человека: имя, бюджет, привычки, «о себе». Используется в ленте владельца и на странице анкеты. #}
 {% with p=person.profile %}
 <div>
-  <div class="display" style="font-size:22px">{{ p.display_name|default:"Без имени" }}{% if p.age %}, {{ p.age }}{% endif %}</div>
+  <div class="display" style="font-size:22px">{{ p.display_name|default:"Без имени" }}{% if p.age %}, {{ p.age }}{% endif %}{% include "includes/_verified.html" %}</div>
   {% if p.occupation %}<div class="muted small" style="margin-top:2px">{{ p.occupation }}</div>{% endif %}
 </div>
 {% if p.budget_max or p.move_in_date %}

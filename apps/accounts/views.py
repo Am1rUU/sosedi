@@ -16,7 +16,7 @@ from django.views.decorators.http import require_POST
 from apps.moderation.services import is_blocked_between
 from config import ratelimit
 
-from . import verification
+from . import profile_verification, verification
 from .forms import DeleteAccountForm, LoginForm, ProfileForm, SignUpForm
 from .models import Invite, User
 
@@ -130,8 +130,14 @@ def profile_edit(request):
     if request.method == "POST" and form.is_valid():
         form.save()
         # Старое фото удаляем из хранилища, если его заменили или убрали
-        if old_photo_name and old_photo_name != (profile.photo.name if profile.photo else ""):
+        photo_changed = old_photo_name != (profile.photo.name if profile.photo else "")
+        if old_photo_name and photo_changed:
             profile.photo.storage.delete(old_photo_name)
+        # Сменили фото — отметка о верификации больше не относится к новому фото
+        if photo_changed and profile_verification.on_profile_photo_changed(profile):
+            messages.info(
+                request, "Фото изменилось, поэтому отметку «Профиль подтверждён» сняли. Подтвердите профиль заново."
+            )
         messages.success(request, "Анкета сохранена")
         return redirect("matching:feed")
     from apps.notifications import telegram
@@ -142,6 +148,7 @@ def profile_edit(request):
         "notif": settings_for(request.user),
         "email_notifications_available": email_configured(),
         "telegram_available": telegram.is_configured(),
+        "verification": profile_verification.state(request.user),
     }
     return render(request, "accounts/profile_edit.html", context)
 
@@ -211,3 +218,42 @@ def resend_verification(request):
         verification.send_in_background(user)
         messages.success(request, f"Письмо отправлено на {user.email}. Проверьте и папку «Спам».")
     return redirect(request.POST.get("next") or "matching:feed")
+
+
+@login_required
+def verify_profile(request):
+    """Подтверждение профиля: живое селфи с заданным жестом, проверяет модератор вручную."""
+    state = profile_verification.state(request.user)
+    if state["status"] == "verified":
+        messages.info(request, "Профиль уже подтверждён")
+        return redirect("accounts:profile_edit")
+    gesture = profile_verification.pick_gesture(request)
+
+    if request.method == "POST":
+        selfie = request.FILES.get("selfie")
+        error = ""
+        if not selfie:
+            error = "Сделайте селфи с заданным жестом"
+        elif not (selfie.content_type or "").startswith("image/"):
+            error = "Нужна фотография"
+        else:
+            try:
+                profile_verification.submit(request.user, selfie, gesture)
+            except profile_verification.VerificationError as exc:
+                error = str(exc)
+            except Exception:
+                logger.exception("Не удалось принять селфи для верификации")
+                error = "Не получилось обработать фото. Попробуйте сделать снимок ещё раз."
+        if not error:
+            request.session.pop(profile_verification.SESSION_GESTURE_KEY, None)
+            messages.success(request, "Отправили на проверку. Обычно это занимает до суток — сообщим о результате.")
+            return redirect("/accounts/profile/#verification")
+        messages.error(request, error)
+
+    from .models import VERIFICATION_GESTURES
+
+    return render(
+        request,
+        "accounts/verify_profile.html",
+        {"gesture_text": VERIFICATION_GESTURES[gesture], "state": state, "profile": request.user.profile},
+    )

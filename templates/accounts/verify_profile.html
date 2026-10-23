@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Подтверждение профиля — Соседи{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<div class="back-row" style="margin-top:4px">
+  <a href="{% url 'accounts:profile_edit' %}" class="icon-btn" aria-label="Назад к анкете">{% include "includes/icon.html" with name="back" %}</a>
+  <div class="grow"><div style="font-weight:600">Подтверждение профиля</div></div>
+</div>
+
+{% if not profile.photo %}
+  <div class="card empty" style="margin-top:14px">
+    <div class="empty-icon">{% include "includes/icon.html" with name="shield" %}</div>
+    <h2>Сначала добавьте фото в анкету</h2>
+    <p>Модератор сравнит его с селфи. Подойдёт фото, где хорошо видно лицо.</p>
+    <a class="btn btn-primary" href="{% url 'accounts:profile_edit' %}">К анкете</a>
+  </div>
+{% else %}
+  <p class="page-lead" style="margin-top:8px">Отметка ✓ показывает другим, что на фото в анкете — действительно вы. Модератор сравнит ваше фото с живым селфи.</p>
+
+  {% if state.status == "pending" %}
+    <div class="prompt-card">Предыдущее селфи ещё на проверке. Новое заменит его.</div>
+  {% endif %}
+
+  <div class="form-card">
+    <div class="form-card-title">Сделайте селфи, где вы:</div>
+    <div class="gesture-task">{{ gesture_text }}</div>
+    <ul class="verify-tips">
+      <li>Лицо целиком в кадре, без очков и маски</li>
+      <li>Хорошее освещение, без фильтров</li>
+      <li>Снимайте сейчас, камерой телефона</li>
+    </ul>
+    <form method="post" enctype="multipart/form-data" data-selfie-form>
+      {% csrf_token %}
+      <label class="selfie-drop">
+        <input type="file" name="selfie" accept="image/*" capture="user" required data-selfie-input>
+        <img alt="" data-selfie-preview hidden>
+        <span data-selfie-label>{% include "includes/icon.html" with name="camera" %}Открыть камеру</span>
+      </label>
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top:14px">Отправить на проверку</button>
+    </form>
+  </div>
+  <p class="helptext" style="text-align:center">Селфи видит только модератор. После проверки мы удаляем его.</p>
+{% endif %}
+
+<script>
+  (function () {
+    var input = document.querySelector("[data-selfie-input]");
+    if (!input) return;
+    input.addEventListener("change", function () {
+      var file = input.files && input.files[0];
+      var img = document.querySelector("[data-selfie-preview]");
+      if (!file || !img) return;
+      img.src = URL.createObjectURL(file);
+      img.hidden = false;
+      document.querySelector("[data-selfie-label]").textContent = "Переснять";
+    });
+  })();
+</script>
+{% endblock %}

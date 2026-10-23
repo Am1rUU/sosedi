@@ -12,7 +12,7 @@
       {% if other.profile.photo %}<img src="{{ other.profile.photo.url }}" alt="">{% else %}{{ other.profile.display_name|first|default:"?" }}{% endif %}
     </a>
     <div class="grow">
-      <div class="chat-name truncate">{{ other.profile.display_name|default:"Собеседник" }}</div>
+      <div class="chat-name truncate">{{ other.profile.display_name|default:"Собеседник" }}{% include "includes/_verified.html" with p=other.profile %}</div>
       <span class="chat-room truncate">{% if i_am_owner %}хочет в вашу комнату{% else %}владелец комнаты{% endif %}</span>
     </div>
     {# Меню без JavaScript: <details> раскрывается по нажатию #}

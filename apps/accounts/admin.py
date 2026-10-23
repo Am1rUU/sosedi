@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
 
-from .models import Invite, Profile, User
+from .models import Invite, Profile, User, VerificationRequest
 from .services import invite_url
 
 
@@ -37,8 +37,8 @@ class UserAdmin(BaseUserAdmin):
 class ProfileAdmin(admin.ModelAdmin):
     """Список анкет для модерации: быстро найти и скрыть подозрительные."""
 
-    list_display = ("__str__", "user", "city", "is_seeking", "is_hidden", "updated_at")
-    list_filter = ("is_seeking", "is_hidden", "city", "gender")
+    list_display = ("__str__", "user", "city", "is_seeking", "is_hidden", "verified_at", "updated_at")
+    list_filter = ("is_seeking", "is_hidden", ("verified_at", admin.EmptyFieldListFilter), "city", "gender")
     list_editable = ("is_hidden",)
     search_fields = ("display_name", "user__email", "about")
     raw_id_fields = ("user",)
@@ -76,3 +76,26 @@ class InviteAdmin(admin.ModelAdmin):
     def revoke(self, request, queryset):
         updated = queryset.filter(used_by__isnull=True).update(is_active=False)
         self.message_user(request, f"Отозвано приглашений: {updated}")
+
+
+@admin.register(VerificationRequest)
+class VerificationRequestAdmin(admin.ModelAdmin):
+    """История заявок на верификацию. Проверять — на экране «Верификация профилей»."""
+
+    list_display = ("user", "status", "reject_reason", "created_at", "reviewed_at", "reviewed_by")
+    list_filter = ("status", "reject_reason")
+    search_fields = ("user__email", "user__profile__display_name")
+    readonly_fields = (
+        "user",
+        "gesture",
+        "selfie",
+        "profile_photo_name",
+        "status",
+        "reject_reason",
+        "created_at",
+        "reviewed_at",
+        "reviewed_by",
+    )
+
+    def has_add_permission(self, request):
+        return False

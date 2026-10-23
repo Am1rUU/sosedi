@@ -146,6 +146,10 @@ class Profile(models.Model):
     # «Посмотреть ещё раз»: комнаты, пропущенные до этого момента, снова показываются в ленте
     feed_reset_at = models.DateTimeField("лента сброшена", null=True, blank=True)
 
+    # --- Верификация ---
+    # Модератор сравнил фото анкеты с живым селфи. При смене фото анкеты отметка снимается.
+    verified_at = models.DateTimeField("профиль подтверждён", null=True, blank=True)
+
     created_at = models.DateTimeField("создана", auto_now_add=True)
     updated_at = models.DateTimeField("обновлена", auto_now=True)
 
@@ -162,6 +166,10 @@ class Profile(models.Model):
         if not self.birth_year:
             return None
         return date.today().year - self.birth_year
+
+    @property
+    def is_verified(self) -> bool:
+        return self.verified_at is not None
 
     @property
     def is_complete(self) -> bool:
@@ -215,3 +223,60 @@ class Invite(models.Model):
     @property
     def is_usable(self) -> bool:
         return self.is_active and self.used_by_id is None
+
+
+# Жесты для живого селфи: модератор проверяет, что человек на фото показывает именно этот жест.
+# Так нельзя отправить чужое или заранее снятое фото.
+VERIFICATION_GESTURES = {
+    "two_fingers": "Покажите два пальца (знак «V») рядом с лицом",
+    "palm_cheek": "Приложите ладонь к щеке",
+    "thumb_up": "Покажите большой палец вверх",
+    "touch_ear": "Дотроньтесь пальцем до уха",
+    "three_fingers": "Покажите три пальца",
+    "chin_hand": "Подоприте подбородок кулаком",
+}
+
+
+class VerificationRequest(models.Model):
+    """Заявка на подтверждение профиля: живое селфи с жестом, которое модератор сравнивает с фото анкеты.
+
+    Селфи нужно только для проверки: после решения модератора файл удаляется.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Ждёт проверки"
+        APPROVED = "approved", "Подтверждено"
+        REJECTED = "rejected", "Отклонено"
+
+    class RejectReason(models.TextChoices):
+        NOT_SAME_PERSON = "not_same", "На селфи другой человек, не как в анкете"
+        WRONG_GESTURE = "gesture", "Жест не совпадает с заданием"
+        BAD_PHOTO = "bad_photo", "Лицо плохо видно — переснимите при хорошем свете"
+        NO_PROFILE_PHOTO = "no_photo", "В анкете нет фото, где видно лицо"
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="verification_requests", verbose_name="пользователь"
+    )
+    gesture = models.CharField("жест", max_length=20, choices=list(VERIFICATION_GESTURES.items()))
+    selfie = models.ImageField("селфи", upload_to="verification/%Y/%m/", blank=True)
+    # Какое фото анкеты было на момент заявки — если его сменят, сравнивать не с чем
+    profile_photo_name = models.CharField("фото анкеты на момент заявки", max_length=255, blank=True)
+    status = models.CharField("статус", max_length=10, choices=Status.choices, default=Status.PENDING, db_index=True)
+    reject_reason = models.CharField("причина отказа", max_length=12, choices=RejectReason.choices, blank=True)
+    created_at = models.DateTimeField("подана", auto_now_add=True)
+    reviewed_at = models.DateTimeField("проверена", null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+", verbose_name="модератор"
+    )
+
+    class Meta:
+        verbose_name = "заявка на верификацию"
+        verbose_name_plural = "заявки на верификацию"
+        ordering = ["created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.user} — {self.get_status_display().lower()}"
+
+    @property
+    def gesture_text(self) -> str:
+        return VERIFICATION_GESTURES.get(self.gesture, self.gesture)

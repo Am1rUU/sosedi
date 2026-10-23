@@ -42,6 +42,22 @@
   </div>
 </form>
 
+<div class="form-card" id="verification" style="margin-top:8px">
+  <div class="form-card-title">Подтверждение профиля</div>
+  {% if verification.status == "verified" %}
+    <div class="verify-state">{% include "includes/_verified.html" with p=user.profile %}<span>Профиль подтверждён — отметка видна рядом с вашим именем.</span></div>
+    <p class="helptext">Если смените фото в анкете, подтвердить профиль нужно будет заново.</p>
+  {% elif verification.status == "pending" %}
+    <p style="margin:0">Селфи на проверке у модератора — обычно до суток. Мы сообщим о результате.</p>
+  {% else %}
+    {% if verification.status == "rejected" %}
+      <p class="chat-error" style="margin:0 0 8px">Не подтвердили: {{ verification.request.get_reject_reason_display|lower }}.</p>
+    {% endif %}
+    <p class="muted small" style="margin:0 0 10px">Отметка ✓ показывает хозяевам и соседям, что на фото — действительно вы. Нужно одно селфи с жестом, проверяет человек.</p>
+    <a class="btn btn-sm btn-primary" href="{% url 'accounts:verify_profile' %}">{% if verification.status == "rejected" %}Попробовать ещё раз{% else %}Подтвердить профиль{% endif %}</a>
+  {% endif %}
+</div>
+
 <div class="form-card" id="notifications" style="margin-top:8px">
   <div class="form-card-title">Уведомления о мэтчах и сообщениях</div>
   <form method="post" action="{% url 'notifications:preferences' %}">

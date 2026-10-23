@@ -20,7 +20,7 @@
           {% if person.profile.photo %}<img src="{{ person.profile.photo.url }}" alt="">{% else %}{{ person.profile.display_name|first|default:"?" }}{% endif %}
         </a>
         <div class="grow">
-          <a href="{% url 'accounts:profile_detail' person.pk %}" class="list-name" style="color:inherit;text-decoration:none">{{ person.profile.display_name|default:"Без имени" }}{% if person.profile.age %}, {{ person.profile.age }}{% endif %}</a>
+          <a href="{% url 'accounts:profile_detail' person.pk %}" class="list-name" style="color:inherit;text-decoration:none">{{ person.profile.display_name|default:"Без имени" }}{% if person.profile.age %}, {{ person.profile.age }}{% endif %}</a>{% include "includes/_verified.html" with p=person.profile %}
           <span class="list-sub truncate">{% if person.profile.budget_max %}до {{ person.profile.budget_max|intcomma }} ₽ · {% endif %}{{ person.profile.occupation }}</span>
         </div>
         <form method="post" action="{% url 'matching:owner_swipe' listing.pk person.pk %}" class="btn-row" style="margin:0;flex-wrap:nowrap">

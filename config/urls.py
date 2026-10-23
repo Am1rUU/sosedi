@@ -7,6 +7,7 @@ from django.urls import include, path, re_path
 from django.views.generic import TemplateView
 from django.views.static import serve
 
+from apps.accounts.moderation_views import verification_queue
 from apps.notifications.views import telegram_webhook
 from config.status import status_view
 
@@ -29,6 +30,7 @@ urlpatterns = [
     path("", TemplateView.as_view(template_name="home.html"), name="home"),
     # Страница «Состояние сайта» — до admin.site.urls, иначе адрес перехватит админка
     path("admin/status/", status_view, name="site_status"),
+    path("admin/verification/", verification_queue, name="verification_queue"),
     path("admin/", admin.site.urls),
     path("accounts/", include("apps.accounts.urls")),
     path("listings/", include("apps.listings.urls")),

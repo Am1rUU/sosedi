@@ -1,0 +1,1 @@
+{# Отметка «Профиль подтверждён» рядом с именем. Использование: {% include "includes/_verified.html" with p=person.profile %} #}{% if p.is_verified %}<span class="verified-badge" title="Профиль подтверждён: модератор сравнил фото с живым селфи" aria-label="Профиль подтверждён">{% include "includes/icon.html" with name="verified" %}</span>{% endif %}

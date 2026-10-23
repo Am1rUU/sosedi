@@ -21,7 +21,7 @@
         </a>
         <a href="{{ listing.get_absolute_url }}" class="grow" style="color:inherit;text-decoration:none;min-width:0">
           <span class="list-name truncate" style="display:block">{{ listing.rent|intcomma }} ₽ · {{ listing.title }}</span>
-          <span class="list-sub truncate">{{ listing.owner.profile.display_name|default:"Хозяин" }}{% if listing.metro %} · м. {{ listing.metro }}{% if listing.metro_walk_minutes %}, {{ listing.metro_walk_minutes }} мин{% endif %}{% endif %}</span>
+          <span class="list-sub truncate">{{ listing.owner.profile.display_name|default:"Хозяин" }}{% include "includes/_verified.html" with p=listing.owner.profile %}{% if listing.metro %} · м. {{ listing.metro }}{% if listing.metro_walk_minutes %}, {{ listing.metro_walk_minutes }} мин{% endif %}{% endif %}</span>
         </a>
         <form method="post" action="{% url 'matching:seeker_swipe' listing.pk %}" class="btn-row" style="margin:0;flex-wrap:nowrap">
           {% csrf_token %}
@@ -57,7 +57,7 @@
           <span class="avatar">{% if item.other.profile.photo %}<img src="{{ item.other.profile.photo.url }}" alt="">{% else %}{{ item.other.profile.display_name|first|default:"?" }}{% endif %}</span>
           <span class="grow">
             <span class="list-top">
-              <span class="list-name">{{ item.other.profile.display_name|default:"Без имени" }}</span>
+              <span class="list-name">{{ item.other.profile.display_name|default:"Без имени" }}{% include "includes/_verified.html" with p=item.other.profile %}</span>
               <span class="list-time">{{ item.last_message.created_at|date:"j E" }}</span>
             </span>
             <span class="list-sub truncate">{{ item.match.listing.title }}</span>

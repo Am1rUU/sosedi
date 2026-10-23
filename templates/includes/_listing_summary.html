@@ -11,6 +11,7 @@
 </div>
 {% endif %}
 <ul class="chips">
+  {% if listing.owner.profile.is_verified %}<li class="chip chip-verified">{% include "includes/icon.html" with name="verified" %}Хозяин подтверждён</li>{% endif %}
   <li class="chip">{% if listing.is_available_now %}Свободно сейчас{% else %}Свободно с {{ listing.available_from|date:"j E" }}{% endif %}</li>
   {% if listing.room_type != "room" %}<li class="chip">{{ listing.get_room_type_display }}</li>{% endif %}
   <li class="chip">Живёт: {{ listing.flatmates_count }}</li>
