@@ -198,6 +198,15 @@ class Invite(models.Model):
 
     code = models.CharField("код", max_length=16, unique=True, default=generate_invite_code)
     note = models.CharField("для кого", max_length=120, blank=True, help_text="Например: «Маша, коллега»")
+    # Откуда пришёл человек — для статистики «какой канал приводит активных пользователей»
+    channel = models.CharField(
+        "канал",
+        max_length=60,
+        blank=True,
+        db_index=True,
+        help_text="Где раздали приглашение: «TG Аренда Москва», «ВК Сокол», «знакомые». "
+        "Один канал всегда пишите одинаково.",
+    )
     is_active = models.BooleanField("действует", default=True, help_text="Снимите галочку, чтобы отозвать приглашение")
     created_at = models.DateTimeField("создано", auto_now_add=True)
     used_by = models.OneToOneField(

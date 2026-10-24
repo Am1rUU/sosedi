@@ -52,11 +52,11 @@ class InviteAdmin(admin.ModelAdmin):
     сохраните → скопируйте ссылку из колонки «Ссылка» и отправьте её.
     """
 
-    list_display = ("code", "note", "link", "status", "used_by", "created_at")
-    list_filter = ("is_active",)
-    search_fields = ("code", "note", "used_by__email")
+    list_display = ("code", "note", "channel", "link", "status", "used_by", "created_at")
+    list_filter = ("is_active", "channel")
+    search_fields = ("code", "note", "channel", "used_by__email")
     readonly_fields = ("code", "link", "used_by", "used_at", "created_at")
-    fields = ("note", "is_active", "code", "link", "used_by", "used_at", "created_at")
+    fields = ("note", "channel", "is_active", "code", "link", "used_by", "used_at", "created_at")
     actions = ["revoke"]
 
     @admin.display(description="Ссылка для приглашения")

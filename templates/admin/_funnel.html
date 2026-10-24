@@ -1,0 +1,10 @@
+{% load l10n %}{# Воронка: горизонтальные полосы, длина — доля от первого шага. #}
+<div class="an-funnel">
+  {% for s in steps %}
+    <div class="an-step" title="{{ s.label }}: {{ s.count }}{% if s.hint %} — {{ s.hint }}{% endif %} · {{ s.pct_of_first }}% от первого шага">
+      <span class="lbl">{{ s.label }}</span>
+      <span class="track"><span class="bar" style="width:{{ s.pct_of_first|unlocalize }}%;display:block"></span></span>
+      <span class="num">{{ s.count }}{% if s.pct_of_prev is not None %}<small>{{ s.pct_of_prev }}% от пред.</small>{% endif %}</span>
+    </div>
+  {% empty %}<p class="empty">Нет данных.</p>{% endfor %}
+</div>

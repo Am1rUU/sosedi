@@ -86,6 +86,11 @@ class LastSeenMiddleware:
         user.last_seen_at = now
         request.session[self.SESSION_KEY] = now_ts
 
+        # Отметка «заходил в этот день» — для удержания по неделям на странице статистики
+        from apps.analytics.models import DailyVisit
+
+        DailyVisit.objects.get_or_create(user_id=user.pk, date=timezone.localdate(now))
+
         if previous and now - previous > timedelta(days=settings.ACTIVITY_HIDE_DAYS):
             messages.info(
                 request,

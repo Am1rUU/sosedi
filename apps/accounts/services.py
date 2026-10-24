@@ -11,6 +11,6 @@ def invite_url(invite: Invite) -> str:
     return f"{settings.SITE_URL.rstrip('/')}{reverse('accounts:signup')}?invite={invite.code}"
 
 
-def create_invites(count: int, note: str = "") -> list[Invite]:
+def create_invites(count: int, note: str = "", channel: str = "") -> list[Invite]:
     """Создаёт несколько приглашений сразу."""
-    return [Invite.objects.create(note=note) for _ in range(count)]
+    return [Invite.objects.create(note=note, channel=channel) for _ in range(count)]

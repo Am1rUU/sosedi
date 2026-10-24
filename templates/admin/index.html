@@ -15,7 +15,8 @@
   <p style="margin:6px 0 12px;font-size:14px">Создайте приглашение, скопируйте ссылку из списка и отправьте человеку. Каждая ссылка одноразовая.</p>
   <a href="{% url 'admin:accounts_invite_add' %}" style="display:inline-block;padding:8px 16px;border-radius:999px;background:#1F6F54;color:#fff;font-weight:600;text-decoration:none;margin-right:8px">+ Создать приглашение</a>
   <a href="{% url 'admin:accounts_invite_changelist' %}" style="display:inline-block;padding:8px 16px;border-radius:999px;border:1px solid #1F6F54;color:#1F6F54;text-decoration:none;margin-right:8px">Все приглашения и ссылки</a>
-  <a href="{% url 'site_status' %}" style="display:inline-block;padding:8px 16px;border-radius:999px;border:1px solid #1F6F54;color:#1F6F54;text-decoration:none">Состояние сайта</a>
+  <a href="{% url 'site_status' %}" style="display:inline-block;padding:8px 16px;border-radius:999px;border:1px solid #1F6F54;color:#1F6F54;text-decoration:none;margin-right:8px">Состояние сайта</a>
+  <a href="{% url 'analytics_dashboard' %}" style="display:inline-block;padding:8px 16px;border-radius:999px;border:1px solid #1F6F54;color:#1F6F54;text-decoration:none">Статистика</a>
 </div>
 {{ block.super }}
 {% endblock %}

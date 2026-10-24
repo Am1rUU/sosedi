@@ -1,0 +1,155 @@
+{% extends "admin/base_site.html" %}
+{% load analytics_tags l10n %}
+{# Дашборд: главная метрика, воронки, «живость», удержание, безопасность, монетизация, каналы, A/B-тесты. #}
+{% block extrastyle %}{{ block.super }}
+<style>
+  .an { --an-bar: #1F6F54; --an-track: #EEF3EF; --an-ink: var(--body-fg, #17201B); --an-muted: var(--body-quiet-color, #5E6862); --an-card: var(--body-bg, #fff); --an-line: var(--hairline-color, #E2E0D9); max-width: 1100px; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .an { --an-bar: #3FA37E; --an-track: #22302A; } }
+  :root[data-theme="dark"] .an { --an-bar: #3FA37E; --an-track: #22302A; }
+  .an h2 { font-size: 17px; margin: 28px 0 4px; color: var(--an-ink); background: none; padding: 0; text-transform: none; letter-spacing: 0; }
+  .an .lead { color: var(--an-muted); font-size: 13px; margin: 0 0 12px; max-width: 760px; }
+  .an-filters { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 4px 0 8px; }
+  .an-filters a { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--an-line); color: var(--an-ink); text-decoration: none; font-size: 13px; }
+  .an-filters a.on { background: var(--an-bar); border-color: var(--an-bar); color: #fff; }
+  .an-filters .sep { width: 12px; }
+  .an-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .an-tile { border: 1px solid var(--an-line); border-radius: 12px; padding: 14px 16px; background: var(--an-card); }
+  .an-tile .k { font-size: 13px; color: var(--an-muted); }
+  .an-tile .v { font-size: 30px; font-weight: 700; color: var(--an-ink); line-height: 1.2; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .an-tile.hero { border-color: var(--an-bar); }
+  .an-tile.hero .v { font-size: 44px; color: var(--an-bar); }
+  .an-tile .s { font-size: 12px; color: var(--an-muted); margin-top: 4px; }
+  .an-two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 900px) { .an-two { grid-template-columns: 1fr; } }
+  .an-funnel { display: grid; gap: 6px; }
+  .an-step { display: grid; grid-template-columns: 150px 1fr 92px; gap: 10px; align-items: center; font-size: 13px; color: var(--an-ink); }
+  .an-step .lbl { color: var(--an-ink); }
+  .an-step .track { height: 22px; background: var(--an-track); border-radius: 4px; overflow: hidden; }
+  .an-step .bar { height: 100%; background: var(--an-bar); border-radius: 0 4px 4px 0; min-width: 2px; }
+  .an-step .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .an-step .num small { display: block; color: var(--an-muted); font-size: 11px; }
+  .an table.an-t { border-collapse: collapse; width: 100%; font-size: 13px; }
+  .an table.an-t th, .an table.an-t td { padding: 8px 10px; border-bottom: 1px solid var(--an-line); text-align: right; font-variant-numeric: tabular-nums; }
+  .an table.an-t th:first-child, .an table.an-t td:first-child { text-align: left; }
+  .an table.an-t thead th { color: var(--an-muted); font-weight: 600; background: none; }
+  .an td.heat { position: relative; color: var(--an-ink); }
+  .an td.heat span.bg { position: absolute; inset: 3px; border-radius: 4px; background: var(--an-bar); z-index: 0; }
+  .an td.heat span.t { position: relative; z-index: 1; }
+  .an td.heat.strong span.t { color: #fff; font-weight: 600; }
+  .an .note { font-size: 12px; color: var(--an-muted); margin-top: 6px; }
+  .an .empty { color: var(--an-muted); font-size: 13px; padding: 8px 0; }
+</style>
+{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Главная</a> › Статистика</div>{% endblock %}
+{% block content %}
+<div class="an">
+  <nav class="an-filters" aria-label="Период">
+    {% for value, label in periods %}<a href="?period={{ value }}{% if include_fake %}&fake=1{% endif %}" class="{% if value == period %}on{% endif %}">{{ label }}</a>{% endfor %}
+    <span class="sep"></span>
+    <a href="?period={{ period }}{% if not include_fake %}&fake=1{% endif %}" class="{% if include_fake %}on{% endif %}" title="Фейковые пользователи для наполнения ленты">{% if include_fake %}С фейковыми{% else %}Без фейковых{% endif %}</a>
+  </nav>
+  <p class="lead">Цифры {{ dash.period_label }}, считаются на лету из базы. Администраторы и модераторы не учитываются{% if not include_fake %}, фейковые пользователи — тоже{% endif %}. Наведите на показатель, чтобы увидеть, как он считается.</p>
+
+  <div class="an-tiles">
+    {% for m in dash.kpis %}
+      <div class="an-tile {% if forloop.first %}hero{% endif %}" title="{{ m.hint }}">
+        <div class="k">{{ m.label }}</div><div class="v">{{ m.value }}</div>{% if m.sub %}<div class="s">{{ m.sub }}</div>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="an-two">
+    <section>
+      <h2>Воронка ищущих</h2>
+      <p class="lead">Люди, зарегистрированные {{ dash.period_label }}. Справа — сколько дошли и % от предыдущего шага.</p>
+      {% include "admin/_funnel.html" with steps=dash.seeker_funnel %}
+    </section>
+    <section>
+      <h2>Воронка хозяев</h2>
+      <p class="lead">Хозяева, создавшие объявление {{ dash.period_label }}.</p>
+      {% include "admin/_funnel.html" with steps=dash.owner_funnel %}
+    </section>
+  </div>
+
+  <h2>Живость площадки</h2>
+  <p class="lead">Главное на закрытом тесте: получают ли люди ответ и как быстро. Если комнаты не получают мэтчей — проблема в предложении или механике, а не в маркетинге.</p>
+  <div class="an-tiles">
+    {% for m in dash.liveness %}
+      <div class="an-tile" title="{{ m.hint }}"><div class="k">{{ m.label }}</div><div class="v">{{ m.value }}</div>{% if m.sub %}<div class="s">{{ m.sub }}</div>{% endif %}</div>
+    {% endfor %}
+  </div>
+
+  <h2>Удержание по неделям</h2>
+  <p class="lead">Строка — люди, зарегистрированные на этой неделе. Ячейка — какая доля заходила на 1-й, 2-й, 3-й и 4-й неделе после регистрации. Уход после «Нашли жильё» — это успех, поэтому читайте вместе с воронкой.</p>
+  {% if dash.retention %}
+  <table class="an-t">
+    <thead><tr><th>Неделя регистрации</th><th>Людей</th><th>1-я</th><th>2-я</th><th>3-я</th><th>4-я</th></tr></thead>
+    <tbody>
+      {% for row in dash.retention %}
+        <tr>
+          <td>с {{ row.start|date:"j E" }}</td><td>{{ row.size }}</td>
+          {% for cell in row.cells %}
+            {% if cell is None %}<td style="color:var(--an-muted)">·</td>
+            {% else %}<td class="heat {% if cell >= 50 %}strong{% endif %}" title="{{ cell }}% вернулись"><span class="bg" style="opacity:{{ cell|heat|unlocalize }}"></span><span class="t">{{ cell }}%</span></td>{% endif %}
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="note">Визиты по дням начали записываться с этого обновления — более ранние недели будут неполными. «·» — неделя ещё не наступила.</p>
+  {% else %}<p class="empty">Пока нет регистраций за последние 8 недель.</p>{% endif %}
+
+  <div class="an-two">
+    <section>
+      <h2>Готовность к монетизации</h2>
+      <p class="lead">Сколько лайков в день ставят ищущие (дни, когда лайкали). Когда заметная доля стабильно упирается в 20+, это сигнал включать лимит.</p>
+      <div class="an-funnel">
+        {% for b in dash.likes_histogram %}
+          <div class="an-step" title="{{ b.count }} дней с {{ b.label }} лайками">
+            <span class="lbl">{{ b.label }} лайков</span>
+            <span class="track"><span class="bar" style="width:{{ b.bar|unlocalize }}%;display:block"></span></span>
+            <span class="num">{{ b.pct }}%<small>{{ b.count }} дн.</small></span>
+          </div>
+        {% endfor %}
+      </div>
+      <p class="note">Упираются в 20+: <b>{{ dash.likes_cap_share }}</b> дней.</p>
+    </section>
+    <section>
+      <h2>Безопасность и качество</h2>
+      <table class="an-t">
+        <tbody>
+          {% for m in dash.safety %}<tr title="{{ m.hint }}"><td>{{ m.label }}{% if m.sub %}<div class="note" style="margin:2px 0 0">{{ m.sub }}</div>{% endif %}</td><td style="font-size:18px;font-weight:600">{{ m.value }}</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <h2>Каналы привлечения</h2>
+  <p class="lead">По полю «Канал» у приглашений. Важно не сколько зарегистрировалось, а сколько стали активными и получили мэтч.</p>
+  {% if dash.channels %}
+  <table class="an-t">
+    <thead><tr><th>Канал</th><th>Приглашений</th><th>Зарегистрировались</th><th>Активные</th><th>С мэтчем</th><th>Нашли</th></tr></thead>
+    <tbody>
+      {% for c in dash.channels %}
+        <tr><td>{{ c.channel }}</td><td>{{ c.sent }}</td><td>{{ c.registered }}</td><td>{{ c.active }} <span style="color:var(--an-muted)">({{ c.active_rate }})</span></td><td>{{ c.matched }} <span style="color:var(--an-muted)">({{ c.match_rate }})</span></td><td>{{ c.found }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="empty">Приглашений за период нет. При создании приглашения заполните поле «Канал».</p>{% endif %}
+
+  <h2>A/B-тесты</h2>
+  <p class="lead">Доля участников, которые после попадания в тест лайкнули, получили мэтч и нашли жильё. Решение принимаем по мэтчам: вывод «лучше/хуже» появляется, только когда разница статистически значима (p &lt; 0,05). Тесты заводятся в разделе <a href="{% url 'admin:analytics_experiment_changelist' %}">«A/B-тесты»</a>.</p>
+  {% for item in dash.experiments %}
+    <h3 style="font-size:14px;margin:14px 0 2px">{{ item.experiment.name }} <span style="color:var(--an-muted);font-weight:400">· {{ item.experiment.key }} · {% if item.experiment.is_active %}идёт{% else %}остановлен{% endif %}</span></h3>
+    {% if item.experiment.hypothesis %}<p class="note" style="margin:0 0 6px">Гипотеза: {{ item.experiment.hypothesis }}</p>{% endif %}
+    <table class="an-t">
+      <thead><tr><th>Вариант</th><th>Участников</th><th>Лайкнули</th><th>Мэтч</th><th>Нашли</th><th>Вывод по мэтчам</th></tr></thead>
+      <tbody>
+        {% for r in item.rows %}<tr><td>{{ r.variant }}</td><td>{{ r.n }}</td><td>{{ r.liked_pct }}</td><td>{{ r.matched_pct }}</td><td>{{ r.found_pct }}</td><td>{{ r.verdict }}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  {% empty %}
+    <p class="empty">Тестов пока нет.</p>
+  {% endfor %}
+</div>
+{% endblock %}

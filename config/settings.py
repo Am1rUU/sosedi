@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "apps.messaging",  # чат после мэтча
     "apps.moderation",  # жалобы и модерация
     "apps.notifications",  # уведомления на почту и в Telegram
+    "apps.analytics",  # статистика и A/B-тесты
 ]
 
 MIDDLEWARE = [

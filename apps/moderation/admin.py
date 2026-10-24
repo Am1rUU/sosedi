@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils import timezone
 
 from apps.listings.models import Listing
 
@@ -24,6 +25,12 @@ class ReportAdmin(admin.ModelAdmin):
     raw_id_fields = ("reporter", "reported_user", "listing")
     actions = ["ban_user", "reject"]
 
+    def save_model(self, request, obj, form, change):
+        # Статус сменили вручную в карточке жалобы — запоминаем время решения
+        if obj.status != Report.Status.OPEN and obj.resolved_at is None:
+            obj.resolved_at = timezone.now()
+        super().save_model(request, obj, form, change)
+
     @admin.action(description="Принять меры: заблокировать пользователя и его объявления")
     def ban_user(self, request, queryset):
         """Блокирует нарушителей: деактивирует аккаунт, скрывает анкету и объявления."""
@@ -34,10 +41,10 @@ class ReportAdmin(admin.ModelAdmin):
             user.profile.is_hidden = True
             user.profile.save(update_fields=["is_hidden"])
             user.listings.update(status=Listing.Status.BLOCKED)
-        queryset.update(status=Report.Status.RESOLVED)
+        queryset.update(status=Report.Status.RESOLVED, resolved_at=timezone.now())
         self.message_user(request, f"Заблокировано пользователей: {len(users)}")
 
     @admin.action(description="Отклонить жалобы")
     def reject(self, request, queryset):
-        updated = queryset.update(status=Report.Status.REJECTED)
+        updated = queryset.update(status=Report.Status.REJECTED, resolved_at=timezone.now())
         self.message_user(request, f"Отклонено жалоб: {updated}")

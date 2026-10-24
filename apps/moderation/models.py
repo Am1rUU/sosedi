@@ -48,6 +48,8 @@ class Report(models.Model):
     status = models.CharField("статус", max_length=10, choices=Status.choices, default=Status.OPEN, db_index=True)
     moderator_note = models.TextField("заметка модератора", blank=True)
     created_at = models.DateTimeField("создана", auto_now_add=True)
+    # Когда модератор принял решение — для метрики «время реакции модерации»
+    resolved_at = models.DateTimeField("решение принято", null=True, blank=True)
 
     class Meta:
         verbose_name = "жалоба"
