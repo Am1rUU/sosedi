@@ -239,6 +239,12 @@ def seeker_feed(user: User, limit: int | None = None) -> list[Listing]:
     if filters.max_walk_minutes:
         # Если хозяин не указал время до метро — показываем: лучше лишняя карточка, чем потерянная
         qs = qs.filter(Q(metro_walk_minutes__lte=filters.max_walk_minutes) | Q(metro_walk_minutes__isnull=True))
+    if filters.min_room_area:
+        # Для квартиры целиком сравниваем площадь всей квартиры; без указанной площади — показываем
+        whole = Q(room_type=Listing.RoomType.WHOLE)
+        room_ok = Q(room_area__gte=filters.min_room_area) | Q(room_area__isnull=True)
+        flat_ok = Q(flat_area__gte=filters.min_room_area) | Q(flat_area__isnull=True)
+        qs = qs.filter((~whole & room_ok) | (whole & flat_ok))
     if filters.furnished_only:
         qs = qs.filter(furnished=True)
     if filters.bills_included_only:

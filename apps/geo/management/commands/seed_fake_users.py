@@ -360,6 +360,21 @@ OWNERS = [
 ]
 
 
+# Площади к объявлениям выше, по порядку: (комната, вся квартира, кухня), м²
+AREAS = [
+    (15, 62, 9),
+    (18, 78, 12),
+    (22, 70, 10),
+    (14, 55, 8),
+    (13, 48, 7),
+    (17, 90, 15),
+    (12, 54, 8),
+    (14, 60, 9),
+    (16, 66, 10),
+    (None, 38, 8),
+]
+
+
 def _photos(kind: str) -> list[Path]:
     folder = PHOTOS_DIR / kind
     if not folder.is_dir():
@@ -492,6 +507,7 @@ class Command(BaseCommand):
             listing.metro = metro
             listing.metro_walk_minutes = walk
             listing.metro_transport_minutes = transport
+            listing.room_area, listing.flat_area, listing.kitchen_area = AREAS[i]
             listing.description = description
             listing.rent = rent
             listing.deposit = deposit

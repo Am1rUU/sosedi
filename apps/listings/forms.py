@@ -47,6 +47,9 @@ class ListingForm(forms.ModelForm):
             "metro_walk_minutes",
             "metro_transport_minutes",
             "room_type",
+            "room_area",
+            "flat_area",
+            "kitchen_area",
             "rent",
             "deposit",
             "bills_included",
@@ -64,6 +67,9 @@ class ListingForm(forms.ModelForm):
             "description": forms.Textarea(
                 attrs={"rows": 6, "placeholder": "Опишите комнату, квартиру, соседей и правила дома"}
             ),
+            "room_area": forms.NumberInput(attrs={"inputmode": "numeric", "placeholder": "14"}),
+            "flat_area": forms.NumberInput(attrs={"inputmode": "numeric", "placeholder": "65"}),
+            "kitchen_area": forms.NumberInput(attrs={"inputmode": "numeric", "placeholder": "9"}),
             "metro_walk_minutes": forms.NumberInput(attrs={"placeholder": "Например, 7", "min": 1, "max": 120}),
             "metro_transport_minutes": forms.NumberInput(attrs={"placeholder": "Например, 10", "min": 1, "max": 120}),
             "title": forms.TextInput(attrs={"placeholder": "Например: Светлая комната у м. Таганская"}),
@@ -72,6 +78,22 @@ class ListingForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["city"].queryset = City.objects.filter(is_active=True)
+        # В форме площади стоят в одну строку под общим заголовком «Площадь, м²»
+        self.fields["room_area"].label = "Комната"
+        self.fields["flat_area"].label = "Квартира"
+        self.fields["kitchen_area"].label = "Кухня"
+
+    def clean(self):
+        data = super().clean()
+        room_area, flat_area, kitchen_area = data.get("room_area"), data.get("flat_area"), data.get("kitchen_area")
+        if kitchen_area and flat_area and kitchen_area >= flat_area:
+            self.add_error("kitchen_area", "Кухня не может быть больше всей квартиры")
+        # Квартира целиком — отдельная площадь комнаты не нужна
+        if data.get("room_type") == Listing.RoomType.WHOLE:
+            data["room_area"] = None
+        elif room_area and flat_area and room_area > flat_area:
+            self.add_error("room_area", "Комната не может быть больше всей квартиры")
+        return data
 
     def clean_photos(self):
         """Проверяем количество и размер фото, затем сжимаем и стираем метаданные.

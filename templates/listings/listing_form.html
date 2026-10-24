@@ -29,6 +29,12 @@
     <legend>Комната и условия</legend>
     {% include "includes/_field.html" with field=form.title %}
     {% include "includes/_field.html" with field=form.room_type %}
+    <span class="field-label">Площадь, м² <span class="muted small">— необязательно</span></span>
+    <div class="field-trio">
+      <div data-room-area>{% include "includes/_field.html" with field=form.room_area %}</div>
+      <div>{% include "includes/_field.html" with field=form.flat_area %}</div>
+      <div>{% include "includes/_field.html" with field=form.kitchen_area %}</div>
+    </div>
     {% include "includes/_field.html" with field=form.rent %}
     {% include "includes/_field.html" with field=form.bills_included %}
     {% include "includes/_field.html" with field=form.deposit %}
@@ -67,6 +73,18 @@
     <button type="submit" class="btn btn-primary btn-block">{% if is_new %}Опубликовать{% else %}Сохранить{% endif %}</button>
   </div>
 </form>
+
+<script>
+  // Для «Квартиры целиком» поле «площадь комнаты» не нужно — прячем
+  (function () {
+    var box = document.querySelector("[data-room-area]");
+    var select = document.querySelector("[name=room_type]");
+    if (!box || !select) return;
+    function sync() { box.hidden = select.value === "whole"; }
+    select.addEventListener("change", sync);
+    sync();
+  })();
+</script>
 
 {% if listing %}
   {% for photo in listing.photos.all %}

@@ -31,6 +31,7 @@ class SearchFiltersForm(forms.ModelForm):
             "rent_min",
             "rent_max",
             "room_types",
+            "min_room_area",
             "areas",
             "areas_only",
             "max_walk_minutes",
@@ -47,12 +48,14 @@ class SearchFiltersForm(forms.ModelForm):
         widgets = {
             "rent_min": forms.NumberInput(attrs={"inputmode": "numeric", "placeholder": "Например, 20000"}),
             "rent_max": forms.NumberInput(attrs={"inputmode": "numeric", "placeholder": "Например, 40000"}),
+            "min_room_area": forms.NumberInput(attrs={"inputmode": "numeric", "placeholder": "Например, 12"}),
             "areas": forms.TextInput(attrs={"placeholder": "Например: Таганская, Курская, Сокол"}),
             "available_by": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
         }
         help_texts = {
             "areas": "Через запятую. Такие комнаты покажем выше в ленте.",
             "available_by": "Комнаты, свободные к этой дате, покажем выше.",
+            "min_room_area": "Для квартиры целиком — площадь всей квартиры. Где площадь не указана, тоже покажем.",
         }
 
     def __init__(self, *args, **kwargs):

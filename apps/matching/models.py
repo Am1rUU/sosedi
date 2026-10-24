@@ -157,6 +157,7 @@ class SearchFilters(models.Model):
     areas = models.CharField("станции метро или районы", max_length=255, blank=True)
     areas_only = models.BooleanField("показывать только эти станции и районы", default=False)
     max_walk_minutes = models.PositiveSmallIntegerField("пешком до метро", null=True, blank=True, choices=WALK_CHOICES)
+    min_room_area = models.PositiveSmallIntegerField("площадь комнаты от, м²", null=True, blank=True)
     available_by = models.DateField("заезд не позже", null=True, blank=True)
     furnished_only = models.BooleanField("только с мебелью", default=False)
     bills_included_only = models.BooleanField("только с коммуналкой в цене", default=False)

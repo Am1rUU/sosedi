@@ -68,6 +68,15 @@ class Listing(models.Model):
     title = models.CharField("заголовок", max_length=120)
     description = models.TextField("описание", max_length=5000)
     room_type = models.CharField("тип жилья", max_length=10, choices=RoomType.choices, default=RoomType.ROOM)
+    room_area = models.PositiveSmallIntegerField(
+        "площадь комнаты, м²", null=True, blank=True, validators=[MinValueValidator(3), MaxValueValidator(200)]
+    )
+    flat_area = models.PositiveSmallIntegerField(
+        "площадь квартиры, м²", null=True, blank=True, validators=[MinValueValidator(10), MaxValueValidator(1000)]
+    )
+    kitchen_area = models.PositiveSmallIntegerField(
+        "площадь кухни, м²", null=True, blank=True, validators=[MinValueValidator(2), MaxValueValidator(100)]
+    )
     rent = models.PositiveIntegerField("цена в месяц")
     deposit = models.PositiveIntegerField("залог", default=0)
     bills_included = models.BooleanField("коммуналка включена", default=False)

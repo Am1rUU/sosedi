@@ -13,6 +13,7 @@
   {% if f.rent_min and f.rent_max %}<span class="chip">{{ f.rent_min|intcomma }}–{{ f.rent_max|intcomma }} ₽</span>
   {% elif f.rent_max %}<span class="chip">до {{ f.rent_max|intcomma }} ₽</span>
   {% elif f.rent_min %}<span class="chip">от {{ f.rent_min|intcomma }} ₽</span>{% endif %}
+  {% if f.min_room_area %}<span class="chip">от {{ f.min_room_area }} м²</span>{% endif %}
   {% if f.max_walk_minutes %}<span class="chip">до {{ f.max_walk_minutes }} мин до метро</span>{% endif %}
   {% if f.areas_only and f.areas %}<span class="chip">{{ f.areas|truncatechars:24 }}</span>{% endif %}
   {% if f.room_type_list|length == 1 %}<span class="chip">{% if "whole" in f.room_type_list %}Квартира{% elif "shared" in f.room_type_list %}Место в комнате{% else %}Комната{% endif %}</span>{% endif %}

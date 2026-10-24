@@ -440,3 +440,8 @@ input[type=file]::file-selector-button { margin-right: 10px; min-height: 40px; p
 .verify-state .verified-badge { width: 22px; height: 22px; margin: 0; }
 .chip-verified { display: inline-flex; align-items: center; gap: 5px; background: var(--mint); color: var(--green-text); font-weight: 600; }
 .chip-verified svg { width: 15px; height: 15px; color: var(--green); }
+
+/* Три коротких поля в строку: площади комнаты, квартиры и кухни */
+.field-trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; align-items: start; margin: 6px 0 14px; }
+.field-trio > div { min-width: 0; }
+.field-trio .field { margin: 0; }
