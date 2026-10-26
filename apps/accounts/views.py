@@ -16,7 +16,7 @@ from django.views.decorators.http import require_POST
 from apps.moderation.services import is_blocked_between
 from config import ratelimit
 
-from . import profile_verification, verification
+from . import profile_verification, roles, verification
 from .forms import DeleteAccountForm, LoginForm, ProfileForm, SignUpForm
 from .models import Invite, User
 
@@ -125,8 +125,12 @@ class RateLimitedLoginView(LoginView):
 def profile_edit(request):
     """Редактирование своей анкеты."""
     profile = request.user.profile
+    roles_on = roles.active(request.user)
+    if roles_on and not profile.role:
+        return redirect("accounts:start")
+    role = profile.role if roles_on else ""
     old_photo_name = profile.photo.name if profile.photo else ""
-    form = ProfileForm(request.POST or None, request.FILES or None, instance=profile)
+    form = ProfileForm(request.POST or None, request.FILES or None, instance=profile, role=role)
     if request.method == "POST" and form.is_valid():
         form.save()
         # Старое фото удаляем из хранилища, если его заменили или убрали
@@ -139,6 +143,8 @@ def profile_edit(request):
                 request, "Фото изменилось, поэтому отметку «Профиль подтверждён» сняли. Подтвердите профиль заново."
             )
         messages.success(request, "Анкета сохранена")
+        if roles_on:
+            return redirect(roles.after_profile_url(request.user))
         return redirect("matching:feed")
     from apps.notifications import telegram
     from apps.notifications.services import email_configured, settings_for
@@ -149,6 +155,9 @@ def profile_edit(request):
         "email_notifications_available": email_configured(),
         "telegram_available": telegram.is_configured(),
         "verification": profile_verification.state(request.user),
+        "roles_on": roles_on,
+        "role": role,
+        "my_listing": roles.my_listing(request.user) if role == roles.OWNER else None,
     }
     return render(request, "accounts/profile_edit.html", context)
 
@@ -257,3 +266,50 @@ def verify_profile(request):
         "accounts/verify_profile.html",
         {"gesture_text": VERIFICATION_GESTURES[gesture], "state": state, "profile": request.user.profile},
     )
+
+
+# --- Роли «Ищу комнату» / «Сдаю комнату» ------------------------------------
+
+
+@login_required
+def start(request):
+    """Первый вход: «Что вы ищете?» — выбор роли."""
+    if not roles.active(request.user):
+        return redirect("matching:feed")
+    if request.method == "POST":
+        role = request.POST.get("role")
+        if role not in (roles.SEEKER, roles.OWNER):
+            messages.error(request, "Выберите один из вариантов")
+            return redirect("accounts:start")
+        roles.switch(request.user, role)
+        if not request.user.profile.is_complete:
+            messages.info(request, "Расскажите немного о себе — так вас быстрее выберут.")
+            return redirect("accounts:profile_edit")
+        return redirect(roles.after_profile_url(request.user))
+    return render(request, "accounts/start.html", {"current": roles.role_of(request.user)})
+
+
+@login_required
+@require_POST
+def switch_role(request):
+    """Переключатель ролей в анкете. Вторая роль уходит в тень, её мэтчи и чаты сохраняются."""
+    if not roles.active(request.user):
+        raise Http404
+    role = request.POST.get("role")
+    if role not in (roles.SEEKER, roles.OWNER):
+        return redirect("accounts:profile_edit")
+    roles.switch(request.user, role)
+    if role == roles.OWNER:
+        if roles.my_listing(request.user) is None:
+            messages.info(request, "Вы сдаёте комнату. Опишите её — и начнём показывать соседей.")
+            return redirect("listings:create")
+        messages.success(request, "Вы сдаёте комнату. Ваша анкета ищущего скрыта, пока вы в этой роли.")
+    else:
+        messages.success(request, "Вы ищете комнату. Ваша комната скрыта из ленты, пока вы в этой роли.")
+    return redirect("accounts:profile_edit")
+
+
+@login_required
+def search(request):
+    """Лупа в нижнем меню: лента своей роли."""
+    return redirect(roles.search_url(request.user))

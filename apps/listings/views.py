@@ -34,6 +34,15 @@ def my_listings(request):
 @login_required
 def listing_create(request):
     """Создание объявления. При включённой премодерации оно уходит на проверку."""
+    from apps.accounts import roles
+
+    roles_on = roles.active(request.user)
+    if roles_on:
+        # В роли «Сдаю комнату» — одна комната на человека
+        existing = roles.my_listing(request.user)
+        if existing is not None:
+            messages.info(request, "У вас уже есть комната — её можно изменить.")
+            return redirect("listings:edit", existing.pk)
     form = ListingForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
         listing = form.save(commit=False)
@@ -45,6 +54,12 @@ def listing_create(request):
             messages.info(request, "Объявление отправлено на модерацию. Обычно это занимает несколько часов.")
         else:
             messages.success(request, "Объявление опубликовано. Теперь можно смотреть анкеты соседей.")
+        if roles_on:
+            if roles.role_of(request.user) != roles.OWNER:
+                roles.switch(request.user, roles.OWNER)
+            if listing.status == Listing.Status.ACTIVE:
+                return redirect("matching:owner_feed", listing.pk)
+            return redirect("accounts:profile_edit")
         return redirect("listings:my")
     return render(request, "listings/listing_form.html", {"form": form, "is_new": True})
 

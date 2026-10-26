@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Что вы ищете? — Соседи{% endblock %}
+{% block tabbar %}{% endblock %}
+{% block tabbar_class %}{% endblock %}
+{% block content %}
+<h1 class="page-title" style="margin-top:12px">Что вы ищете?</h1>
+<p class="page-lead">От этого зависит, что вы увидите в поиске. Поменять можно в любой момент — в анкете.</p>
+
+<form method="post" class="role-choice">
+  {% csrf_token %}
+  <button class="role-option {% if current == 'seeker' %}selected{% endif %}" name="role" value="seeker">
+    <span class="role-icon">{% include "includes/icon.html" with name="search" %}</span>
+    <span class="grow">
+      <span class="role-title">Ищу комнату</span>
+      <span class="role-sub">Смотрю комнаты, хозяева видят мою анкету</span>
+    </span>
+    {% include "includes/icon.html" with name="chevron" %}
+  </button>
+  <button class="role-option {% if current == 'owner' %}selected{% endif %}" name="role" value="owner">
+    <span class="role-icon">{% include "includes/icon.html" with name="home" %}</span>
+    <span class="grow">
+      <span class="role-title">Сдаю комнату</span>
+      <span class="role-sub">Ищу соседа в свою квартиру и смотрю анкеты</span>
+    </span>
+    {% include "includes/icon.html" with name="chevron" %}
+  </button>
+</form>
+{% endblock %}

@@ -108,6 +108,9 @@ def record_swipe(actor: User, listing: Listing, seeker: User, side: str, decisio
             listing=listing, seeker=seeker, side=other_side, decision=Swipe.Decision.LIKE
         ).exists()
         if not mutual:
+            from apps.notifications.services import inapp_like
+
+            inapp_like(swipe)
             return SwipeResult(swipe=swipe)
 
         # Мэтч мог уже существовать (например, лайк поставлен повторно) — тогда не дублируем
@@ -125,9 +128,10 @@ def record_swipe(actor: User, listing: Listing, seeker: User, side: str, decisio
             created = True
 
     if created:
-        from apps.notifications.services import notify_match
+        from apps.notifications.services import inapp_match, notify_match
 
         notify_match(match, actor)
+        inapp_match(match)
     return SwipeResult(swipe=swipe, match=match if created else None)
 
 
@@ -226,6 +230,11 @@ def seeker_feed(user: User, limit: int | None = None) -> list[Listing]:
 
     qs = Listing.objects.visible().filter(city_id=filters.city_id).exclude(owner=user)
     qs = qs.exclude(owner_id__in=blocked_user_ids(user))
+    from apps.accounts import features
+
+    if features.for_everyone("roles"):
+        # Вариант Б: хозяин сейчас в роли «Ищу комнату» — его комната в тени
+        qs = qs.exclude(owner__profile__role=Profile.Role.SEEKER)
 
     # --- Фильтры поиска ---
     if filters.rent_min:

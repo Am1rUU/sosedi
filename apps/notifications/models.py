@@ -33,3 +33,33 @@ class NotificationSettings(models.Model):
     @property
     def telegram_connected(self) -> bool:
         return self.telegram_chat_id is not None
+
+
+class InAppNotification(models.Model):
+    """Уведомление внутри приложения (колокольчик в нижнем меню)."""
+
+    class Kind(models.TextChoices):
+        LIKE = "like", "Лайк"
+        MATCH = "match", "Мэтч"
+        VERIFICATION = "verify", "Верификация"
+        SYSTEM = "system", "Сообщение сервиса"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="inapp_notifications", verbose_name="кому"
+    )
+    kind = models.CharField("тип", max_length=8, choices=Kind.choices)
+    # Для какой роли уведомление: показываем в колокольчике только уведомления активной роли
+    role = models.CharField("роль", max_length=6, blank=True)
+    text = models.CharField("текст", max_length=300)
+    url = models.CharField("ссылка", max_length=300, blank=True)
+    created_at = models.DateTimeField("когда", auto_now_add=True, db_index=True)
+    read_at = models.DateTimeField("прочитано", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "уведомление в приложении"
+        verbose_name_plural = "уведомления в приложении"
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["user", "read_at"])]
+
+    def __str__(self) -> str:
+        return f"{self.user}: {self.text[:40]}"

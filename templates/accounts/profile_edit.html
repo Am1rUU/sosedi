@@ -2,7 +2,39 @@
 {% block title %}Моя анкета — Соседи{% endblock %}
 {% block content %}
 <h1 class="page-title">Какой вы сосед?</h1>
+{% if roles_on %}
+<form method="post" action="{% url 'accounts:switch_role' %}" class="role-switch" aria-label="Роль" style="margin:6px 0 10px">
+  {% csrf_token %}
+  <button name="role" value="seeker" class="{% if role == 'seeker' %}active{% endif %}" {% if role == 'seeker' %}aria-pressed="true" disabled{% endif %}>Ищу комнату</button>
+  <button name="role" value="owner" class="{% if role == 'owner' %}active{% endif %}" {% if role == 'owner' %}aria-pressed="true" disabled{% endif %}>Сдаю комнату</button>
+</form>
+{% if role == 'owner' %}
+<p class="page-lead">Эту анкету видят люди, которых заинтересовала ваша комната. Пока вы сдаёте, ваша анкета ищущего скрыта.</p>
+<div class="form-card" id="room">
+  <div class="form-card-title">Моя комната</div>
+  {% if my_listing %}
+    <div class="room-row">
+      <a href="{% url 'listings:edit' my_listing.pk %}" class="room-thumb" aria-label="Изменить объявление">{% with photo=my_listing.main_photo %}{% if photo %}<img src="{{ photo.image.url }}" alt="">{% else %}{% include "includes/icon.html" with name="home" %}{% endif %}{% endwith %}</a>
+      <span class="grow" style="min-width:0">
+        <span class="list-name truncate" style="display:block">{{ my_listing.title }}</span>
+        <span class="list-sub">{{ my_listing.get_status_display }}</span>
+      </span>
+    </div>
+    <div class="btn-row" style="margin-top:12px">
+      <a class="btn btn-sm btn-primary" href="{% url 'listings:edit' my_listing.pk %}">Изменить</a>
+      <a class="btn btn-sm" href="{% url 'listings:my' %}">Пауза, «сдано» и другое</a>
+    </div>
+  {% else %}
+    <p class="muted small" style="margin:0 0 10px">Опишите комнату — после этого начнём показывать вам анкеты соседей.</p>
+    <a class="btn btn-sm btn-primary" href="{% url 'listings:create' %}">Добавить комнату</a>
+  {% endif %}
+</div>
+{% else %}
+<p class="page-lead">Эту анкету видят хозяева комнат. Какие комнаты показывать вам, настраивается отдельно — в <a href="{% url 'matching:filters' %}">фильтрах поиска</a>.</p>
+{% endif %}
+{% else %}
 <p class="page-lead">Это ваша анкета — её видят хозяева комнат, если включено «Ищу жильё». Какие комнаты показывать вам, настраивается отдельно — в <a href="{% url 'matching:filters' %}">фильтрах поиска</a>.</p>
+{% endif %}
 
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
@@ -19,15 +51,22 @@
     <span class="helptext">Фото уменьшается, а скрытые данные снимка (в том числе геолокация) удаляются.</span>
   </fieldset>
 
+  {% if role == 'owner' %}
+  <fieldset class="form-card">
+    <legend>Где</legend>
+    {% include "includes/_field.html" with field=form.city %}
+  </fieldset>
+  {% else %}
   <fieldset class="form-card">
     <legend>Что ищу — это видят хозяева</legend>
-    {% include "includes/_field.html" with field=form.is_seeking %}
+    {% if form.is_seeking %}{% include "includes/_field.html" with field=form.is_seeking %}{% endif %}
     {% if form.instance.is_seeking %}<a class="small" href="{% url 'matching:found' %}">Я уже нашёл(ла) жильё</a>{% endif %}
     {% include "includes/_field.html" with field=form.city %}
     {% include "includes/_field.html" with field=form.preferred_districts %}
     {% include "includes/_field.html" with field=form.budget_max %}
     {% include "includes/_field.html" with field=form.move_in_date %}
   </fieldset>
+  {% endif %}
 
   <fieldset class="form-card">
     <legend>Образ жизни</legend>

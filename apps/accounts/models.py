@@ -97,12 +97,19 @@ class Profile(models.Model):
         FEMALE = "f", "Женский"
         OTHER = "o", "Не указывать"
 
+    class Role(models.TextChoices):
+        SEEKER = "seeker", "Ищу комнату"
+        OWNER = "owner", "Сдаю комнату"
+
     class Schedule(models.TextChoices):
         EARLY = "early", "Жаворонок"
         LATE = "late", "Сова"
         FLEXIBLE = "flex", "По-разному"
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile", verbose_name="пользователь")
+    # Активная роль: человек видит и показывается другим только в ней (вторая роль — «в тени»).
+    # Пусто — роль ещё не выбрана (новый пользователь до экрана «Что вы ищете?»).
+    role = models.CharField("роль", max_length=6, choices=Role.choices, blank=True, db_index=True)
 
     # --- Основное ---
     display_name = models.CharField("имя", max_length=60, blank=True)
@@ -289,3 +296,26 @@ class VerificationRequest(models.Model):
     @property
     def gesture_text(self) -> str:
         return VERIFICATION_GESTURES.get(self.gesture, self.gesture)
+
+
+class FeatureFlag(models.Model):
+    """Выключатель новой функции: выкл / только сотрудникам / всем. Меняется в админке без деплоя."""
+
+    class Mode(models.TextChoices):
+        OFF = "off", "Выключено"
+        STAFF = "staff", "Только сотрудникам (проверка)"
+        ALL = "all", "Включено всем"
+
+    class Key(models.TextChoices):
+        ROLES = "roles", "Роли «Ищу комнату / Сдаю комнату» и новое меню"
+
+    key = models.CharField("функция", max_length=40, choices=Key.choices, unique=True)
+    mode = models.CharField("режим", max_length=5, choices=Mode.choices, default=Mode.OFF)
+    updated_at = models.DateTimeField("изменено", auto_now=True)
+
+    class Meta:
+        verbose_name = "выключатель функции"
+        verbose_name_plural = "выключатели функций"
+
+    def __str__(self) -> str:
+        return f"{self.get_key_display()}: {self.get_mode_display().lower()}"

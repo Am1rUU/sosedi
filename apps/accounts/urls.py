@@ -10,6 +10,9 @@ urlpatterns = [
     # Вход — с защитой от подбора пароля; выход — встроенное представление Django
     path("login/", views.RateLimitedLoginView.as_view(), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
+    path("start/", views.start, name="start"),
+    path("role/", views.switch_role, name="switch_role"),
+    path("search/", views.search, name="search"),
     path("profile/", views.profile_edit, name="profile_edit"),
     path("delete/", views.account_delete, name="delete"),
     path("people/<int:user_id>/", views.profile_detail, name="profile_detail"),

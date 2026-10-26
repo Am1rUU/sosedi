@@ -137,3 +137,60 @@ def _send_message(message_id: int) -> None:
     text = f"Новое сообщение от {name}:\n«{preview}»"
     url = _absolute(reverse("messaging:chat", args=[match.pk]))
     deliver(recipient, f"Новое сообщение от {name} — Соседи", text, url, "Ответить")
+
+
+# --- Колокольчик: уведомления внутри приложения ------------------------------
+
+
+def inapp(user, kind: str, text: str, url: str = "", role: str = "") -> None:
+    """Добавить уведомление в колокольчик человека."""
+    from .models import InAppNotification
+
+    InAppNotification.objects.create(user=user, kind=kind, text=text[:300], url=url[:300], role=role)
+
+
+def inapp_like(swipe) -> None:
+    """Лайк без взаимности: сообщаем второй стороне, что её лайкнули."""
+    from apps.matching.models import Swipe
+
+    from .models import InAppNotification
+
+    listing = swipe.listing
+    if swipe.side == Swipe.Side.SEEKER:
+        inapp(
+            listing.owner,
+            InAppNotification.Kind.LIKE,
+            f"Кто-то лайкнул вашу комнату «{listing.title}». Посмотрите и ответьте взаимностью.",
+            reverse("matching:incoming_likes", args=[listing.pk]),
+            role="owner",
+        )
+    else:
+        inapp(
+            swipe.seeker,
+            InAppNotification.Kind.LIKE,
+            f"Хозяин комнаты «{listing.title}» лайкнул вашу анкету.",
+            reverse("matching:matches") + "?role=seeker",
+            role="seeker",
+        )
+
+
+def inapp_match(match) -> None:
+    from .models import InAppNotification
+
+    url = reverse("messaging:chat", args=[match.pk])
+    seeker_name = match.seeker.profile.display_name or "Ищущий"
+    owner_name = match.listing.owner.profile.display_name or "Хозяин"
+    title = match.listing.title
+    inapp(match.seeker, InAppNotification.Kind.MATCH, f"Мэтч! {owner_name} — комната «{title}».", url, "seeker")
+    inapp(match.listing.owner, InAppNotification.Kind.MATCH, f"Мэтч! {seeker_name} хочет в вашу комнату.", url, "owner")
+
+
+def unread_inapp_count(user, role: str = "") -> int:
+    from django.db.models import Q
+
+    from .models import InAppNotification
+
+    qs = InAppNotification.objects.filter(user=user, read_at__isnull=True)
+    if role:
+        qs = qs.filter(Q(role=role) | Q(role=""))
+    return qs.count()

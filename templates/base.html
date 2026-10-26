@@ -21,7 +21,7 @@
 
   {% block header %}
   <header class="topbar">
-    <a href="{% if user.is_authenticated %}{% url 'matching:feed' %}{% else %}{% url 'home' %}{% endif %}" class="logo" aria-label="Соседи — на главную">
+    <a href="{% if user.is_authenticated %}{% if roles_on %}{% url 'accounts:search' %}{% else %}{% url 'matching:feed' %}{% endif %}{% else %}{% url 'home' %}{% endif %}" class="logo" aria-label="Соседи — на главную">
       <span class="logo-word">соседи</span><span class="logo-dot" aria-hidden="true"></span>
     </a>
     <div class="topbar-actions">
@@ -54,6 +54,24 @@
   {% if user.is_authenticated %}
   {% block tabbar %}
   {% with ns=request.resolver_match.namespace un=request.resolver_match.url_name %}
+  {% if roles_on %}
+  <nav class="tabbar" aria-label="Основное меню">
+    <a class="tab {% if un == 'feed' or un == 'owner_feed' or un == 'filters' or un == 'incoming_likes' or un == 'search' or ns == 'listings' %}active{% endif %}" href="{% url 'accounts:search' %}">
+      {% include "includes/icon.html" with name="search" %}Поиск
+    </a>
+    <a class="tab {% if un == 'matches' or un == 'match' or ns == 'messaging' %}active{% endif %}" href="{% url 'matching:matches' %}" {% if un == 'matches' %}aria-current="page"{% endif %}>
+      {% include "includes/icon.html" with name="chat" %}Сообщения
+      {% if nav_badge %}<span class="tab-badge" aria-label="новых: {{ nav_badge }}">{{ nav_badge }}</span>{% endif %}
+    </a>
+    <a class="tab {% if ns == 'notifications' %}active{% endif %}" href="{% url 'notifications:inbox' %}" {% if ns == 'notifications' %}aria-current="page"{% endif %}>
+      {% include "includes/icon.html" with name="bell" %}Уведомления
+      {% if bell_badge %}<span class="tab-badge" aria-label="новых: {{ bell_badge }}">{{ bell_badge }}</span>{% endif %}
+    </a>
+    <a class="tab {% if ns == 'accounts' and un != 'search' %}active{% endif %}" href="{% url 'accounts:profile_edit' %}">
+      {% include "includes/icon.html" with name="user" %}Профиль
+    </a>
+  </nav>
+  {% else %}
   <nav class="tabbar" aria-label="Основное меню">
     <a class="tab {% if ns == 'matching' and un == 'feed' %}active{% endif %}" href="{% url 'matching:feed' %}" {% if ns == 'matching' and un == 'feed' %}aria-current="page"{% endif %}>
       {% include "includes/icon.html" with name="feed" %}Лента
@@ -69,6 +87,7 @@
       {% include "includes/icon.html" with name="user" %}Анкета
     </a>
   </nav>
+  {% endif %}
   {% endwith %}
   {% endblock %}
   {% endif %}

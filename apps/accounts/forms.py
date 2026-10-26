@@ -112,8 +112,18 @@ class ProfileForm(forms.ModelForm):
             "budget_max": forms.NumberInput(attrs={"inputmode": "numeric", "placeholder": "40000"}),
         }
 
-    def __init__(self, *args, **kwargs):
+    # Поля роли «Ищу комнату» — у сдающего их нет (его анкету ищущего никто не видит)
+    SEEKER_FIELDS = ("preferred_districts", "budget_max", "move_in_date")
+
+    def __init__(self, *args, role: str = "", **kwargs):
         super().__init__(*args, **kwargs)
+        self.role = role
+        if role:
+            # При ролях «ищу/сдаю» видимость анкеты задаёт роль, а не галочка
+            self.fields.pop("is_seeking")
+            if role == Profile.Role.OWNER:
+                for name in self.SEEKER_FIELDS:
+                    self.fields.pop(name)
         # В выборе только города, где сервис запущен
         self.fields["city"].queryset = City.objects.filter(is_active=True)
         self.fields["city"].empty_label = "Выберите город"

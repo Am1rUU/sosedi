@@ -134,7 +134,10 @@ def pending_count() -> int:
 
 
 def _notify(user: User, subject: str, text: str) -> None:
-    from apps.notifications.services import deliver, run_in_background
+    from apps.notifications.models import InAppNotification
+    from apps.notifications.services import deliver, inapp, run_in_background
+
+    inapp(user, InAppNotification.Kind.VERIFICATION, text, reverse("accounts:profile_edit") + "#verification")
 
     url = f"{settings.SITE_URL}{reverse('accounts:profile_edit')}#verification"
     run_in_background(deliver, user, subject, text, url, "Открыть анкету")

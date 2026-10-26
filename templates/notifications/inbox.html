@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Уведомления — Соседи{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<h1 class="page-title" style="margin-top:8px">Уведомления</h1>
+{% if items %}
+  <div class="list" style="margin-top:8px">
+    {% for n in items %}
+      <a class="list-item notif-item {% if n.pk in unread_ids %}unread{% endif %}" href="{{ n.url|default:'#' }}">
+        <span class="notif-icon">{% if n.kind == "like" %}{% include "includes/icon.html" with name="heart" %}{% elif n.kind == "match" %}{% include "includes/icon.html" with name="chat" %}{% elif n.kind == "verify" %}{% include "includes/icon.html" with name="shield" %}{% else %}{% include "includes/icon.html" with name="bell" %}{% endif %}</span>
+        <span class="grow">
+          <span class="notif-text">{{ n.text }}</span>
+          <span class="list-sub">{{ n.created_at|date:"j E, H:i" }}</span>
+        </span>
+        {% if n.pk in unread_ids %}<span class="notif-dot" aria-label="новое"></span>{% endif %}
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card empty" style="margin-top:18px">
+    <div class="empty-icon">{% include "includes/icon.html" with name="bell" %}</div>
+    <h2>Пока тихо</h2>
+    <p>Здесь появятся лайки, мэтчи и новости о проверке профиля.</p>
+  </div>
+{% endif %}
+{% endblock %}

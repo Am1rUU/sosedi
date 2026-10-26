@@ -43,7 +43,12 @@ def _redirect_to_match(match: Match) -> HttpResponse:
 @login_required
 def feed(request):
     """Лента объявлений для ищущего: одна карточка за раз (и следующая — под ней)."""
+    from apps.accounts import roles
+
     profile = request.user.profile
+    if roles.active(request.user) and profile.role != roles.SEEKER:
+        # Сдающему лента комнат не нужна; без роли — сначала «Что вы ищете?»
+        return redirect(roles.search_url(request.user))
     if not profile.is_complete:
         messages.info(request, "Чтобы смотреть комнаты, укажите имя и город в анкете.")
         return redirect("accounts:profile_edit")
@@ -113,6 +118,10 @@ def owner_feed(request, listing_id: int):
     listing = get_object_or_404(Listing, pk=listing_id, owner=request.user)
     if listing.status != Listing.Status.ACTIVE:
         messages.info(request, "Лента доступна только для активного объявления.")
+        from apps.accounts import roles
+
+        if roles.active(request.user):
+            return redirect(reverse("accounts:profile_edit") + "#room")
         return redirect("listings:my")
 
     people = services.owner_feed(request.user, listing, limit=2)
@@ -209,8 +218,16 @@ def match_page(request, match_id: int):
 
 @login_required
 def matches(request):
-    """Мэтчи пользователя: вкладки «Я ищу» и «Я сдаю», новые — отдельно сверху."""
+    """Мэтчи пользователя: вкладки «Я ищу» и «Я сдаю», новые — отдельно сверху.
+
+    С ролями вкладок нет: показываем только активную роль, вторая в тени.
+    """
+    from apps.accounts import roles
+
     role = request.GET.get("role")
+    roles_on = roles.active(request.user) and bool(roles.role_of(request.user))
+    if roles_on:
+        role = roles.role_of(request.user)
     as_seeker, as_owner = [], []
     for match in services.user_matches(request.user):
         item = {
@@ -231,10 +248,15 @@ def matches(request):
     if role not in ("seeker", "owner"):
         role = "owner" if as_owner and not as_seeker and not liked_me else "seeker"
     items = as_owner if role == "owner" else as_seeker
+    owner_listing = roles.my_listing(request.user) if roles_on and role == "owner" else None
+    owner_likes = list(services.incoming_likes_for_listing(owner_listing)[:20]) if owner_listing else []
     return render(
         request,
         "matching/matches.html",
         {
+            "roles_on": roles_on,
+            "owner_listing": owner_listing,
+            "owner_likes": owner_likes,
             "role": role,
             "seeker_count": len(as_seeker),
             "liked_me": liked_me if role == "seeker" else [],

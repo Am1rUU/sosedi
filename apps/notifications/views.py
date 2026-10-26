@@ -144,3 +144,28 @@ def _handle_command(chat_id: int, text: str, username: str) -> str:
         return "Уведомления и так не подключены."
 
     return "Я умею только присылать уведомления. Команды: /stop — отключить уведомления."
+
+
+@login_required
+def inbox(request):
+    """Колокольчик: лайки, мэтчи и сообщения сервиса для активной роли.
+
+    Открыли страницу — показанные уведомления считаются прочитанными
+    (новые всё равно подсвечены до следующего захода).
+    """
+    from django.db.models import Q
+    from django.shortcuts import render
+
+    from apps.accounts import roles
+
+    from .models import InAppNotification
+
+    qs = InAppNotification.objects.filter(user=request.user)
+    role = roles.role_of(request.user) if roles.active(request.user) else ""
+    if role:
+        qs = qs.filter(Q(role=role) | Q(role=""))
+    items = list(qs[:50])
+    unread_ids = [n.pk for n in items if n.read_at is None]
+    if unread_ids:
+        InAppNotification.objects.filter(pk__in=unread_ids).update(read_at=timezone.now())
+    return render(request, "notifications/inbox.html", {"items": items, "unread_ids": set(unread_ids)})

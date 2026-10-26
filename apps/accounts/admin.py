@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
 
-from .models import Invite, Profile, User, VerificationRequest
+from .models import FeatureFlag, Invite, Profile, User, VerificationRequest
 from .services import invite_url
 
 
@@ -99,3 +99,17 @@ class VerificationRequestAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+
+@admin.register(FeatureFlag)
+class FeatureFlagAdmin(admin.ModelAdmin):
+    """Выключатели новых функций: сначала «только сотрудникам», проверили — «включено всем»."""
+
+    list_display = ("key", "mode", "updated_at")
+    list_editable = ("mode",)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        from .features import reset_cache
+
+        reset_cache(obj.key)

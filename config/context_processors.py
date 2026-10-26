@@ -16,19 +16,41 @@ def site_flags(request):
         # Импорт внутри функции: модели загружаются после настроек
         from django.db.models import Q
 
+        from apps.accounts import roles
         from apps.matching.models import Match
         from apps.messaging.models import Message
 
-        open_matches = Match.objects.filter(Q(seeker=user) | Q(listing__owner=user), is_closed=False)
+        roles_on = roles.active(user)
+        role = roles.role_of(user) if roles_on else ""
+        context["roles_on"] = roles_on
+        context["active_role"] = role
+
+        # С ролями считаем только чаты и лайки активной роли — вторая в тени
+        if role == roles.OWNER:
+            side = Q(listing__owner=user)
+        elif role == roles.SEEKER:
+            side = Q(seeker=user)
+        else:
+            side = Q(seeker=user) | Q(listing__owner=user)
+        open_matches = Match.objects.filter(side, is_closed=False)
         unread = (
             Message.objects.filter(match__in=open_matches, read_at__isnull=True, deleted_at__isnull=True)
             .exclude(sender=user)
             .count()
         )
         not_started = open_matches.filter(messages__isnull=True).count()
-        from apps.matching.services import incoming_likes_for_seeker
+        from apps.matching.services import incoming_likes_for_listing, incoming_likes_for_seeker
 
-        context["nav_badge"] = unread + not_started + incoming_likes_for_seeker(user).count()
+        if role == roles.OWNER:
+            listing = roles.my_listing(user)
+            likes = incoming_likes_for_listing(listing).count() if listing else 0
+        else:
+            likes = incoming_likes_for_seeker(user).count()
+        context["nav_badge"] = unread + not_started + likes
+        if roles_on:
+            from apps.notifications.services import unread_inapp_count
+
+            context["bell_badge"] = unread_inapp_count(user, role)
         context["email_unverified"] = not user.can_interact
 
         # Вопрос «Нашли соседа/комнату?» — только на страницах сайта, не в админке
