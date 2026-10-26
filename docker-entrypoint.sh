@@ -38,8 +38,9 @@ if [ -n "$DJANGO_SUPERUSER_EMAIL" ]; then
 fi
 
 # Telegram-бот для уведомлений: сообщаем Telegram адрес сайта (если задан TELEGRAM_BOT_TOKEN)
+# Запускается в фоне, чтобы медленный ответ Telegram не задерживал старт сайта и проверку здоровья
 if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
-    python manage.py telegram_setup || echo "Не удалось подключить Telegram-бота, продолжаю запуск"
+    (sleep 5; python manage.py telegram_setup || echo "Не удалось подключить Telegram-бота") &
 fi
 
 # Фейковые пользователи для закрытого теста (10 ищущих + 10 хозяев): SEED_FAKE_USERS=1.
