@@ -48,10 +48,16 @@ def call(method: str, payload: dict | None = None, timeout: int = 10) -> dict:
 
 def bot_username() -> str:
     """Имя бота (для ссылки t.me/имя). Узнаём один раз и запоминаем на сутки."""
-    name = cache.get("telegram:bot_username")
+    try:
+        name = cache.get("telegram:bot_username")
+    except OSError:  # кэш недоступен (например, права на файл) — просто спросим Telegram
+        name = None
     if not name:
         name = call("getMe")["username"]
-        cache.set("telegram:bot_username", name, 24 * 60 * 60)
+        try:
+            cache.set("telegram:bot_username", name, 24 * 60 * 60)
+        except OSError:
+            pass
     return name
 
 

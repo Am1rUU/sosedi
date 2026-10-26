@@ -40,7 +40,12 @@ fi
 # Telegram-бот для уведомлений: сообщаем Telegram адрес сайта (если задан TELEGRAM_BOT_TOKEN)
 # Запускается в фоне, чтобы медленный ответ Telegram не задерживал старт сайта и проверку здоровья
 if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
-    (sleep 5; python manage.py telegram_setup || echo "Не удалось подключить Telegram-бота") &
+    # От имени appuser (как и сайт): иначе файлы кэша станут доступны только root и сайт не сможет их прочитать
+    if [ -n "$RUN_AS" ]; then
+        (sleep 5; su -p appuser -s /bin/sh -c "python manage.py telegram_setup" || echo "Не удалось подключить Telegram-бота") &
+    else
+        (sleep 5; python manage.py telegram_setup || echo "Не удалось подключить Telegram-бота") &
+    fi
 fi
 
 # Фейковые пользователи для закрытого теста (10 ищущих + 10 хозяев): SEED_FAKE_USERS=1.

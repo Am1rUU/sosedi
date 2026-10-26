@@ -53,3 +53,17 @@ def test_no_token_no_alerts(settings, sent, django_user_model):
     NotificationSettings.objects.create(user=admin, telegram_chat_id=111)
     TelegramAlertHandler().emit(_error_record())
     assert sent == []
+
+
+def test_bot_username_survives_unreadable_cache(settings, monkeypatch):
+    from django.core.cache import cache
+
+    settings.TELEGRAM_BOT_TOKEN = "1:x"
+    monkeypatch.setattr(telegram, "call", lambda method, payload=None, timeout=10: {"username": "sosedi_bot"})
+
+    def denied(*args, **kwargs):
+        raise PermissionError(13, "Permission denied")
+
+    monkeypatch.setattr(cache, "get", denied)
+    monkeypatch.setattr(cache, "set", denied)
+    assert telegram.bot_username() == "sosedi_bot"
