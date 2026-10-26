@@ -207,15 +207,29 @@ def check_telegram() -> Check:
     return Check("Telegram", True, "Бот работает", details)
 
 
+CHECKS = [
+    ("База данных", "check_database"),
+    ("Хранилище фото", "check_storage"),
+    ("Почта", "check_email"),
+    ("Telegram", "check_telegram"),
+    ("Настройки", "check_settings"),
+    ("Активность", "check_activity"),
+]
+
+
 def run_all_checks() -> list[Check]:
-    return [
-        check_database(),
-        check_storage(),
-        check_email(),
-        check_telegram(),
-        check_settings(),
-        check_activity(),
-    ]
+    """Каждая проверка — отдельно: если одна упала, остальные всё равно покажутся,
+    а упавшая станет красным блоком с текстом ошибки (вместо ошибки 500 на всю страницу)."""
+    import logging
+
+    results = []
+    for title, name in CHECKS:
+        try:
+            results.append(globals()[name]())
+        except Exception as exc:
+            logging.getLogger(__name__).exception("Проверка «%s» упала", title)
+            results.append(Check(title, False, "Проверка упала с ошибкой", [f"{type(exc).__name__}: {exc}"]))
+    return results
 
 
 @staff_member_required

@@ -47,3 +47,20 @@ def test_settings_check_hides_secret_values(monkeypatch):
     text = " ".join(check.details)
     assert "DB_PASSWORD" in text
     assert "super-secret-value" not in text
+
+
+@pytest.mark.django_db
+def test_one_broken_check_does_not_break_page(client, django_user_model, monkeypatch):
+    import config.status as status
+
+    def boom():
+        raise RuntimeError("сломалось внутри проверки")
+
+    monkeypatch.setattr(status, "check_telegram", boom)
+    admin = django_user_model.objects.create_superuser(email="a2@example.com", password="pass12345")
+    client.force_login(admin)
+    response = client.get(reverse("site_status"))
+    assert response.status_code == 200
+    html = response.content.decode()
+    assert "RuntimeError: сломалось внутри проверки" in html
+    assert "База данных" in html
