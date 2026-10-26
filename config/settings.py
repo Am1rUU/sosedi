@@ -351,6 +351,10 @@ if not DEBUG:
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "root": {"handlers": ["console"], "level": os.environ.get("LOG_LEVEL", "INFO")},
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+        # Ошибки сайта — сотрудникам в Telegram (если бот настроен и сотрудник подключил Telegram в анкете)
+        "telegram_alerts": {"()": "apps.notifications.alerts.TelegramAlertHandler"},
+    },
+    "root": {"handlers": ["console", "telegram_alerts"], "level": os.environ.get("LOG_LEVEL", "INFO")},
 }
